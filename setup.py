@@ -10,7 +10,7 @@ MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
 readme = os.path.join(os.path.dirname(__file__), 'README.txt')
 LONG_DESCRIPTION = open(readme).read()
-requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
+requirements = os.path.join(os.path.dirname(__file__), 'requirements.rst')
 INSTALL_REQUIRES = open(requirements).read().split()
 
 URL = 'http://matteolandi.blogspot.com'
