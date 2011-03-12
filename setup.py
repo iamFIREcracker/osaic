@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
 import os
+from setuptools import setup
 
 
 VERSION = '1.0.0'
 NAME = 'osaic'
 MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
+readme = os.path.join(os.path.dirname(__file__), 'README.rst')
+LONG_DESCRIPTION = open(readme).read()
+requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
+INSTALL_REQUIRES = open(requirements).read().split()
 
 URL = 'http://matteolandi.blogspot.com'
 
@@ -34,10 +39,11 @@ params = dict(
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
     keywords=KEYWORDS,
     url=URL,
     classifiers=CLASSIFIERS,
+    install_requires=INSTALL_REQUIRES,
 )
 
-from distutils.core import setup
 setup(**params)
