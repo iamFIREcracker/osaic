@@ -146,7 +146,7 @@ class Osaic(object):
         self.mosaic.show()
 
 
-def create(filename, tiles, size, mode, output):
+def create(filename, tiles=32, size=1, mode=DEFAULT, output=None):
     """Wrapper of the ``Osaic`` object."""
     try:
         osaic = Osaic(filename, tiles, size, mode)
