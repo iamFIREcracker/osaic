@@ -4,7 +4,7 @@ import os
 from setuptools import setup
 
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 NAME = 'osaic'
 MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
