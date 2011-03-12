@@ -8,9 +8,9 @@ VERSION = '1.1.0'
 NAME = 'osaic'
 MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
-readme = os.path.join(os.path.dirname(__file__), 'README.txt')
+readme = os.path.join(os.path.dirname(__file__), 'README.rst')
 LONG_DESCRIPTION = open(readme).read()
-requirements = os.path.join(os.path.dirname(__file__), 'requirements.rst')
+requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
 INSTALL_REQUIRES = open(requirements).read().split()
 
 URL = 'http://matteolandi.blogspot.com'
