@@ -4,7 +4,7 @@ import os
 from setuptools import setup
 
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 NAME = 'osaic'
 MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
@@ -13,7 +13,7 @@ LONG_DESCRIPTION = open(readme).read()
 requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
 INSTALL_REQUIRES = open(requirements).read().split()
 
-URL = 'http://matteolandi.blogspot.com'
+URL = 'https://bitbucket.org/iamFIREcracker/osaic'
 
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
@@ -44,6 +44,7 @@ params = dict(
     keywords=KEYWORDS,
     url=URL,
     classifiers=CLASSIFIERS,
+    requires=INSTALL_REQUIRES,
     install_requires=INSTALL_REQUIRES,
 )
 
