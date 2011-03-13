@@ -14,6 +14,7 @@ requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
 INSTALL_REQUIRES = open(requirements).read().split()
 
 URL = 'https://bitbucket.org/iamFIREcracker/osaic'
+DOWNLOAD_URL = 'http://pypi.python.org/pypi/osaic'
 
 CLASSIFIERS = [
     'Development Status :: 5 - Production/Stable',
@@ -35,17 +36,20 @@ params = dict(
     name=NAME,
     version=VERSION,
     py_modules=MODULES,
+    install_requires=INSTALL_REQUIRES,
 
     # metadata for upload to PyPI
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
+    license='BSD',
     keywords=KEYWORDS,
     url=URL,
+    download_url=DOWNLOAD_URL,
     classifiers=CLASSIFIERS,
+    provides=MODULES,
     requires=INSTALL_REQUIRES,
-    install_requires=INSTALL_REQUIRES,
 )
 
 setup(**params)
