@@ -60,9 +60,9 @@ First of all, import the module::
 
     >>> import osaic
 
-Then create a new ``Osaic`` object::
+Then create a new ``Mosaic`` object::
 
-    >>> mos = osaic.Osaic('foo.jpg', tiles=32, size=1, mode=osaic.DEFAULT)
+    >>> mos = osaic.Mosaic(['foo.jpg'], tiles=32, size=1)
 
 At this point, create the mosaic, show it on screen and save it on
 a file::
@@ -76,9 +76,8 @@ module which is a wrapper of all the actions listed above::
 
     >>> import osaic
     >>> osaic.create(
-    ...     filename='foo.jpg',
+    ...     filenames=['foo.jpg'],
     ...     tiles=32,
-    ...     size=2,
-    ...     mode=osaic.DEFAULT,
+    ...     size=1,
     ...     output=None,
     ... )
