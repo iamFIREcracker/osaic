@@ -27,6 +27,9 @@ def average_color(image):
     (N, (R, G, B)) = max(image.getcolors(width * height))
     return (R, G, B)
 
+def random_element(seq):
+    """Return a random element from the given sequence."""
+    return seq[randint(0, len(seq) - 1)]
 
 class InvalidInput(Exception):
     """Raised when the input image can not be read.
@@ -99,21 +102,23 @@ class Mosaic(object):
         (mos_w, mos_h) = (mos_tile_w * self.tiles, mos_tile_h * self.tiles)
         mosaic = Image.new("RGBA", (mos_w, mos_h))
 
+        # target represents the image on which create a mosaic and its
+        # given by the first source image.
+        target = self.sources[0]
         for i in xrange(self.tiles):
             for j in xrange(self.tiles):
                 (x, y) = (j * src_tile_w, i * src_tile_h)
 
                 # get the tile average color ..
-                cropped = self.sources[0].crop((x, y, x + src_tile_w,
-                                               y + src_tile_h))
+                cropped = target.crop((x, y, x + src_tile_w, y + src_tile_h))
                 (r, g, b) = average_color(cropped)
                 # .. and create a monochromatic surface.
-                color = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
+                overlay = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
 
                 # elaborate the new mosaic tile
-                source = self.sources[randint(0, len(self.sources) - 1)]
+                source = random_element(self.sources)
                 resized = source.resize((mos_tile_w, mos_tile_h))
-                tile = ImageChops.multiply(resized, color)
+                tile = ImageChops.multiply(resized, overlay)
 
                 # pate the tile to the output surface
                 (x, y) = (j * mos_tile_w, i * mos_tile_h)
