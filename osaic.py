@@ -17,19 +17,20 @@ import ImageChops
 def average_color(image):
     """Return the average color of the given image."""
     (width, height) = image.size
-    #(N, R, G, B) = (0, 0, 0, 0)
-    #for (n, (r, g, b)) in img.getcolors(img.size[0] * img.size[1]):
-        #N += n * n
-        #R += n * r
-        #G += n * g
-        #B += n * b
-    #return (R // N, G // N, B // N)
-    (N, (R, G, B)) = max(image.getcolors(width * height))
-    return (R, G, B)
+    (N, R, G, B) = (0, 0, 0, 0)
+    for (n, (r, g, b)) in image.getcolors(width * height):
+        N += n
+        R += n * r
+        G += n * g
+        B += n * b
+    return (R // N, G // N, B // N)
+
 
 def random_element(seq):
     """Return a random element from the given sequence."""
     return seq[randint(0, len(seq) - 1)]
+
+
 
 class InvalidInput(Exception):
     """Raised when the input image can not be read.
