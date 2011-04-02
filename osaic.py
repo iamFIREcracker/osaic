@@ -43,7 +43,7 @@ class InvalidOutput(Exception):
         self.output = output
 
 
-class Osaic(object):
+class Mosaic(object):
     """Core object of the module.
 
     Given an input image and a couple of optional settings, create
@@ -139,14 +139,14 @@ class Osaic(object):
 
 
 def create(filenames, tiles=32, size=1, output=None):
-    """Wrapper of the ``Osaic`` object."""
+    """Wrapper of the ``Mosaic`` object."""
     try:
-        osaic = Osaic(filenames, tiles, size)
-        osaic.create()
+        mosaic = Mosaic(filenames, tiles, size)
+        mosaic.create()
         if output:
-            osaic.save(output)
+            mosaic.save(output)
         else:
-            osaic.show()
+            mosaic.show()
     except InvalidInput, e:
         print "Input image '%s' can not be read." % e.input_
     except InvalidOutput, e:
