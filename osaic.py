@@ -7,6 +7,7 @@
 from __future__ import division
 from optparse import OptionParser
 from optparse import OptionGroup
+from random import randint
 
 import Image
 import ImageChops
@@ -110,7 +111,8 @@ class Mosaic(object):
                 color = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
 
                 # elaborate the new mosaic tile
-                resized = self.sources[0].resize((mos_tile_w, mos_tile_h))
+                source = self.sources[randint(0, len(self.sources) - 1)]
+                resized = source.resize((mos_tile_w, mos_tile_h))
                 tile = ImageChops.multiply(resized, color)
 
                 # pate the tile to the output surface
@@ -161,7 +163,8 @@ def _build_parser():
 
     config = OptionGroup(parser, "Configuration Options")
     config.add_option("-t", "--tiles", dest="tiles", default="32",
-                      help="Number of tiles per width/height.", metavar="TILES")
+                      help="Number of tiles per width/height.",
+                      metavar="TILES")
     config.add_option("-s", "--size", dest="size", default="1",
                       help="Size of the mosaic.", metavar="SIZE")
     config.add_option("-o", "--output", dest="output", default=None,
