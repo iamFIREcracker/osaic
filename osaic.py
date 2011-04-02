@@ -50,21 +50,26 @@ class Osaic(object):
     a mosaic and display on screen or write it to disk.
     """
 
-    def __init__(self, filename, tiles=32, size=1):
+    def __init__(self, filenames, tiles=32, size=1):
         """Initialize the rendering object.
 
         Accepted keywords:
-            filename: source input image.
+            filenames: list of filenames of the photos to use for the
+                       mosaic.
             tiles: number of tiles to use per dimension (width, height).
             zoom: size of the mosaic (compared to original photo).
 
         Raise:
             InvalidInput, ValueError.
         """
-        try:
-            self.source = Image.open(filename)
-        except IOError:
-            raise InvalidInput(filename)
+        if not filenames:
+            raise ValueError("'filenames' should be not empty.");
+        self.sources = list()
+        for fname in filenames:
+            try:
+                self.sources.append(Image.open(fname))
+            except IOError:
+                raise InvalidInput(fname)
 
         if tiles <= 0:
             raise ValueError("'tiles' should be greater than 0.")
@@ -82,12 +87,12 @@ class Osaic(object):
         """
         # size of the tiles extracted from the source image.
         (src_tile_w, src_tile_h) = map(lambda v: v // self.tiles,
-                                       self.source.size)
+                                       self.sources[0].size)
         # size of the tiles used for the mosaic: these values are
         # different from the ones of the source image because of the
         # ``size`` value that acts like a zoom effect.
         (mos_tile_w, mos_tile_h) = map(lambda v: v * self.size // self.tiles,
-                                       self.source.size)
+                                       self.sources[0].size)
 
         # size of the mosaic.
         (mos_w, mos_h) = (mos_tile_w * self.tiles, mos_tile_h * self.tiles)
@@ -98,14 +103,14 @@ class Osaic(object):
                 (x, y) = (j * src_tile_w, i * src_tile_h)
 
                 # get the tile average color ..
-                cropped = self.source.crop((x, y, x + src_tile_w,
-                                            y + src_tile_h))
+                cropped = self.sources[0].crop((x, y, x + src_tile_w,
+                                               y + src_tile_h))
                 (r, g, b) = average_color(cropped)
                 # .. and create a monochromatic surface.
                 color = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
 
                 # elaborate the new mosaic tile
-                resized = self.source.resize((mos_tile_w, mos_tile_h))
+                resized = self.sources[0].resize((mos_tile_w, mos_tile_h))
                 tile = ImageChops.multiply(resized, color)
 
                 # pate the tile to the output surface
@@ -133,10 +138,10 @@ class Osaic(object):
         self.mosaic.show()
 
 
-def create(filename, tiles=32, size=1, output=None):
+def create(filenames, tiles=32, size=1, output=None):
     """Wrapper of the ``Osaic`` object."""
     try:
-        osaic = Osaic(filename, tiles, size)
+        osaic = Osaic(filenames, tiles, size)
         osaic.create()
         if output:
             osaic.save(output)
@@ -176,9 +181,8 @@ def _main():
         parser.print_help()
         exit(1)
 
-    print args
     create(
-        filename=args[0],
+        filenames=args,
         tiles=int(options.tiles),
         size=int(options.size),
         output=options.output,
