@@ -12,11 +12,6 @@ import Image
 import ImageChops
 
 
-# Accepted mosaic modes.
-MODES = 2
-DEFAULT, EIGHTBIT = range(MODES)
-
-
 
 def average_color(image):
     """Return the average color of the given image."""
@@ -55,14 +50,13 @@ class Osaic(object):
     a mosaic and display on screen or write it to disk.
     """
 
-    def __init__(self, filename, tiles=32, size=1, mode=DEFAULT):
+    def __init__(self, filename, tiles=32, size=1):
         """Initialize the rendering object.
 
         Accepted keywords:
             filename: source input image.
             tiles: number of tiles to use per dimension (width, height).
             zoom: size of the mosaic (compared to original photo).
-            mode: the kind of mosaic to create.
 
         Raise:
             InvalidInput, ValueError.
@@ -80,15 +74,11 @@ class Osaic(object):
             raise ValueError("'size' should be greater than 0.")
         self.size = size
 
-        if mode not in range(MODES):
-            raise ValueError("'mode' should be in the range [0, %d[" % MODES)
-        self.mode = mode
-
         self.mosaic = None
 
     def create(self):
-        """Create the mosaic using the specified ``mode`` and finally
-        store the output inside the ``mosaic`` variable.
+        """Create the mosaic and store the output inside the ``mosaic``
+        variable.
         """
         # size of the tiles extracted from the source image.
         (src_tile_w, src_tile_h) = map(lambda v: v // self.tiles,
@@ -115,12 +105,9 @@ class Osaic(object):
                 color = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
 
                 # elaborate the new mosaic tile
-                if self.mode == DEFAULT:
-                    resized = self.source.resize((mos_tile_w, mos_tile_h))
-                    tile = ImageChops.multiply(resized, color)
-                elif self.mode == EIGHTBIT:
-                    tile = color
-                
+                resized = self.source.resize((mos_tile_w, mos_tile_h))
+                tile = ImageChops.multiply(resized, color)
+
                 # pate the tile to the output surface
                 (x, y) = (j * mos_tile_w, i * mos_tile_h)
                 mosaic.paste(tile, (x, y, x + mos_tile_w, y + mos_tile_h))
@@ -146,10 +133,10 @@ class Osaic(object):
         self.mosaic.show()
 
 
-def create(filename, tiles=32, size=1, mode=DEFAULT, output=None):
+def create(filename, tiles=32, size=1, output=None):
     """Wrapper of the ``Osaic`` object."""
     try:
-        osaic = Osaic(filename, tiles, size, mode)
+        osaic = Osaic(filename, tiles, size)
         osaic.create()
         if output:
             osaic.save(output)
@@ -164,16 +151,14 @@ def create(filename, tiles=32, size=1, mode=DEFAULT, output=None):
 
 def _build_parser():
     """Return a command-line arguments parser."""
-    usage = "Usage: %prog [-t TILES] [-s SIZE] [-m MODE] [-o OUTPUT] IMAGE"
+    usage = "Usage: %prog [-t TILES] [-s SIZE] [-o OUTPUT] IMAGE1 ..."
     parser = OptionParser(usage=usage)
 
     config = OptionGroup(parser, "Configuration Options")
     config.add_option("-t", "--tiles", dest="tiles", default="32",
-                      help="Number of tiles per width/height", metavar="TILES")
+                      help="Number of tiles per width/height.", metavar="TILES")
     config.add_option("-s", "--size", dest="size", default="1",
                       help="Size of the mosaic.", metavar="SIZE")
-    config.add_option("-m", "--mode", dest="mode", default="0",
-                      help="Type of mosaic to create.", metavar="MODE")
     config.add_option("-o", "--output", dest="output", default=None,
                       help="Save output instead of showing it.",
                       metavar="OUTPUT")
@@ -191,11 +176,11 @@ def _main():
         parser.print_help()
         exit(1)
 
+    print args
     create(
         filename=args[0],
         tiles=int(options.tiles),
         size=int(options.size),
-        mode=int(options.mode),
         output=options.output,
     )
 
