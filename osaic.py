@@ -14,21 +14,83 @@ import ImageChops
 
 
 
-def average_color(image):
-    """Return the average color of the given image."""
-    (width, height) = image.size
-    (N, R, G, B) = (0, 0, 0, 0)
-    for (n, (r, g, b)) in image.getcolors(width * height):
-        N += n
-        R += n * r
-        G += n * g
-        B += n * b
-    return (R // N, G // N, B // N)
-
-
 def random_element(seq):
     """Return a random element from the given sequence."""
     return seq[randint(0, len(seq) - 1)]
+
+
+def tileify(image, tiles, zoom):
+    """Transform the given image into a collection of tiles.
+    
+    Accepted keywords:
+        image image to tileify.
+        tiles how many tiles to use per dimension.
+        zoom zoom factor handy for resizing the mosaic.
+    """
+    (width, height) = image.size
+    image = image.resize((width * zoom, height * zoom))
+
+    (tile_w, tile_h) = (width * zoom // tiles, height * zoom // tiles)
+
+    mosaic = [[None for i in xrange(tiles)] for j in xrange(tiles)]
+    for i in xrange(tiles):
+        for j in xrange(tiles):
+            (x, y) = (j * tile_w, i * tile_h)
+            mosaic[i][j] = Tile(image.crop((x, y, x + tile_w, y + tile_h)))
+    return mosaic
+    
+
+def untileify(mosaic):
+    """Transform the given mosaic into an image.
+
+    Accepted keywords:
+        mosaic collection of tiles created using ``tileify``.
+    """
+    (tile_w, tile_h) = mosaic[0][0].size
+    tiles = len(mosaic)
+
+    image = Image.new("RGB", (tile_w * tiles, tile_h * tiles))
+    for i in xrange(len(mosaic)):
+        for j in xrange(len(mosaic[0])):
+            # pate the tile to the output surface
+            (x, y) = (j * tile_w, i * tile_h)
+            image.paste(mosaic[i][j].image, (x, y, x + tile_w, y + tile_h))
+    return image
+
+
+def mosaicify(target, sources, tilesize=32, zoom=1, output=None):
+    """XXX"""
+    try:
+        mosaic = Mosaic(target, tilesize, zoom)
+    except InvalidInput, e:
+        print "Input image '%s' can not be read." % e.input_
+
+    source_tiles = list()
+    for source in sources:
+        try:
+            tile = Tile(Image.open(source))
+            tile.ratio = mosaic.tileratio
+            tile.size = mosaic.tilesize
+            source_tiles.append(tile)
+        except IOError:
+            # Let's try to go on without the failing image: just
+            # print a message.
+            print "Unable to open: %s" % (source)
+    if not source_tiles:
+        raise ValueError("The tile list cannot be empty.")
+
+    for tile in mosaic:
+        color = tile.average_color
+        new_tile = random_element(source_tiles).colorify(color)
+        tile.paste(new_tile)
+        
+    if output:
+        try:
+            mosaic.save(output)
+        except InvalidOutput, e:
+            print "Output image '%s' can not be written." % e.output
+    else:
+        mosaic.show()
 
 
 
@@ -48,131 +110,173 @@ class InvalidOutput(Exception):
         self.output = output
 
 
-class Mosaic(object):
-    """Core object of the module.
+class Tile(object):
+    """XXX"""
+    
+    def __init__(self, image):
+        """Initialize the underlaying image object.
+        
+        Accepted keywords:
+            image image object to use as tile.
+        """
+        self.image = image
 
-    Given an input image and a couple of optional settings, create
-    a mosaic and display on screen or write it to disk.
-    """
+    @property
+    def average_color(self):
+        """Return the average color of the tile."""
+        (width, height) = self.image.size
+        (N, R, G, B) = (0, 0, 0, 0)
+        for (n, (r, g, b)) in self.image.getcolors(width * height):
+            N += n
+            R += n * r
+            G += n * g
+            B += n * b
+        return (R // N, G // N, B // N)
 
-    def __init__(self, filenames, tiles=32, size=1):
-        """Initialize the rendering object.
+    @property
+    def ratio(self):
+        """Return the ratio (width / height) of tile."""
+        (width, height) = self.size
+        return (width / height)
+
+    @ratio.setter
+    def ratio(self, ratio):
+        """Set the ratio (width / height) of the tile."""
+        (width, height) = self.size
+        if (width / height) > ratio:
+            (width, height) = (ratio * height, height)
+        else:
+            (width, height) = (width, width / ratio)
+        self.image = self.image.crop((0, 0, int(width), int(height)))
+
+    @property
+    def size(self):
+        """Return a tuple representing the size of the tile."""
+        return self.image.size
+
+    @size.setter
+    def size(self, size):
+        """Set the size of the tile."""
+        self.image = self.image.resize(size)
+
+    def paste(self, tile):
+        """Substitute the content of the tile with the given one.
 
         Accepted keywords:
-            filenames: list of filenames of the photos to use for the
-                       mosaic.
-            tiles: number of tiles to use per dimension (width, height).
-            zoom: size of the mosaic (compared to original photo).
+            tile a Tile object.
+        """
+        (width, height) = tile.size
+        self.image.paste(tile.image, (0, 0, width, height))
+
+    def colorify(self, color):
+        """Apply a colored layer over the tile.
+        
+        Accepted keywords:
+            color tuple containing the RGB values of the layer.
+
+        Return:
+            The new colored Tile.
+        """
+        overlay = Image.new("RGB", self.size, color)
+        return Tile(ImageChops.multiply(self.image, overlay))
+
+
+class Mosaic(object):
+    """XXX"""
+
+    def __init__(self, target, tiles=32, zoom=1):
+        """Initialize the rendering object.
+        
+        Accepted keywords:
+            target name of the file we which to *mosaicify*.
+            tiles number of tiles to use per dimention.
+            zoom zoom factor handy for resizing the mosaic.
 
         Raise:
             InvalidInput, ValueError.
         """
-        if not filenames:
-            raise ValueError("'filenames' should be not empty.");
-        self.sources = list()
-        for fname in filenames:
-            try:
-                self.sources.append(Image.open(fname))
-            except IOError:
-                raise InvalidInput(fname)
-
         if tiles <= 0:
-            raise ValueError("'tiles' should be greater than 0.")
-        self.tiles = tiles
+            raise ValueError("The number of tiles cannot be smaller than 0.")
+        if zoom <= 0:
+            raise ValueError("Zoom level cannot be smaller than 0.")
 
-        if size <= 0:
-            raise ValueError("'size' should be greater than 0.")
-        self.size = size
+        try:
+            self.tiles = tileify(Image.open(target), tiles, zoom)
+        except IOError:
+            raise InvalidInput(target)
 
-        self.mosaic = None
+        # internal state used while iterating over the tiles.
+        self.i = self.j = 0
 
-    def create(self):
-        """Create the mosaic and store the output inside the ``mosaic``
-        variable.
+    def __iter__(self):
+        """Add iteration support."""
+        return self
+
+    def next(self):
+        """Return one by one the tiles used by the mosaic.
+
+        The internal state is held by ``i`` and ``j`` variables.
+
+        Return:
+            The next tile used.
+
+        Raise:
+            StopIteration.
         """
-        # size of the tiles extracted from the source image.
-        (src_tile_w, src_tile_h) = map(lambda v: v // self.tiles,
-                                       self.sources[0].size)
-        # size of the tiles used for the mosaic: these values are
-        # different from the ones of the source image because of the
-        # ``size`` value that acts like a zoom effect.
-        (mos_tile_w, mos_tile_h) = map(lambda v: v * self.size // self.tiles,
-                                       self.sources[0].size)
+        if self.i == len(self.tiles):
+            self.i == self.j == 0
+            raise StopIteration()
 
-        # size of the mosaic.
-        (mos_w, mos_h) = (mos_tile_w * self.tiles, mos_tile_h * self.tiles)
-        mosaic = Image.new("RGBA", (mos_w, mos_h))
+        tile = self.tiles[self.i][self.j]
 
-        # target represents the image on which create a mosaic and its
-        # given by the first source image.
-        target = self.sources[0]
-        for i in xrange(self.tiles):
-            for j in xrange(self.tiles):
-                (x, y) = (j * src_tile_w, i * src_tile_h)
+        self.j += 1
+        if self.j == len(self.tiles):
+            self.i += 1
+            self.j = 0
 
-                # get the tile average color ..
-                cropped = target.crop((x, y, x + src_tile_w, y + src_tile_h))
-                (r, g, b) = average_color(cropped)
-                # .. and create a monochromatic surface.
-                overlay = Image.new("RGB", (mos_tile_w, mos_tile_h), (r, g, b))
+        return tile
 
-                # elaborate the new mosaic tile
-                source = random_element(self.sources)
-                resized = source.resize((mos_tile_w, mos_tile_h))
-                tile = ImageChops.multiply(resized, overlay)
+    @property
+    def tileratio(self):
+        """Return the ratio (width / height) of the used tiles."""
+        (width, height) = self.tilesize
+        return (width / height)
 
-                # pate the tile to the output surface
-                (x, y) = (j * mos_tile_w, i * mos_tile_h)
-                mosaic.paste(tile, (x, y, x + mos_tile_w, y + mos_tile_h))
-
-        self.mosaic = mosaic
+    @property
+    def tilesize(self):
+        """Return the size of used tiles."""
+        return self.tiles[0][0].size
 
     def save(self, filename):
         """Save the mosaic on a file.
 
         Accepted keywords:
-            filename: path of the destination file to create.
+            filename path of the destination file to create.
 
         Raise:
             InvalidOutput.
         """
         try:
-            self.mosaic.save(filename)
-        except (IOError, KeyError):
+            untileify(self.tiles).save(filename)
+        except IOError:
             raise InvalidOutput(filename)
 
     def show(self):
-        """Show the mosaic on screen."""
-        self.mosaic.show()
-
-
-def create(filenames, tiles=32, size=1, output=None):
-    """Wrapper of the ``Mosaic`` object."""
-    try:
-        mosaic = Mosaic(filenames, tiles, size)
-        mosaic.create()
-        if output:
-            mosaic.save(output)
-        else:
-            mosaic.show()
-    except InvalidInput, e:
-        print "Input image '%s' can not be read." % e.input_
-    except InvalidOutput, e:
-        print "Output image '%s' can not be written." % e.output
+        """show the mosaic on screen."""
+        untileify(self.tiles).show()
 
 
 
 def _build_parser():
     """Return a command-line arguments parser."""
-    usage = "Usage: %prog [-t TILES] [-s SIZE] [-o OUTPUT] IMAGE1 ..."
+    usage = "Usage: %prog [-t TILESIZE] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
     parser = OptionParser(usage=usage)
 
     config = OptionGroup(parser, "Configuration Options")
-    config.add_option("-t", "--tiles", dest="tiles", default="32",
-                      help="Number of tiles per width/height.",
-                      metavar="TILES")
-    config.add_option("-s", "--size", dest="size", default="1",
-                      help="Size of the mosaic.", metavar="SIZE")
+    config.add_option("-t", "--tile-size", dest="tilesize", default="32",
+                      help="Size of the squared tiles.", metavar="TILESIZE")
+    config.add_option("-z", "--zoom", dest="zoom", default="1",
+                      help="Zoom level of the mosaic.", metavar="ZOOM")
     config.add_option("-o", "--output", dest="output", default=None,
                       help="Save output instead of showing it.",
                       metavar="OUTPUT")
@@ -190,10 +294,11 @@ def _main():
         parser.print_help()
         exit(1)
 
-    create(
-        filenames=args,
-        tiles=int(options.tiles),
-        size=int(options.size),
+    mosaicify(
+        target=args[0],
+        sources=set(args),
+        tilesize=int(options.tilesize),
+        zoom=int(options.zoom),
         output=options.output,
     )
 
