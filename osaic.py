@@ -58,12 +58,9 @@ def untileify(mosaic):
     return image
 
 
-def mosaicify(target, sources, tilesize=32, zoom=1, output=None):
+def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     """XXX"""
-    try:
-        mosaic = Mosaic(target, tilesize, zoom)
-    except InvalidInput, e:
-        print "Input image '%s' can not be read." % e.input_
+    mosaic = Mosaic(target, tiles, zoom)
 
     source_tiles = list()
     for source in sources:
@@ -85,10 +82,7 @@ def mosaicify(target, sources, tilesize=32, zoom=1, output=None):
         tile.paste(new_tile)
         
     if output:
-        try:
-            mosaic.save(output)
-        except InvalidOutput, e:
-            print "Output image '%s' can not be written." % e.output
+        mosaic.save(output)
     else:
         mosaic.show()
 
@@ -269,12 +263,12 @@ class Mosaic(object):
 
 def _build_parser():
     """Return a command-line arguments parser."""
-    usage = "Usage: %prog [-t TILESIZE] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
+    usage = "Usage: %prog [-t TILES] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
     parser = OptionParser(usage=usage)
 
     config = OptionGroup(parser, "Configuration Options")
-    config.add_option("-t", "--tile-size", dest="tilesize", default="32",
-                      help="Size of the squared tiles.", metavar="TILESIZE")
+    config.add_option("-t", "--tiles", dest="tiles", default="32",
+                      help="Number of tiles per side.", metavar="TILES")
     config.add_option("-z", "--zoom", dest="zoom", default="1",
                       help="Zoom level of the mosaic.", metavar="ZOOM")
     config.add_option("-o", "--output", dest="output", default=None,
@@ -294,13 +288,18 @@ def _main():
         parser.print_help()
         exit(1)
 
-    mosaicify(
-        target=args[0],
-        sources=set(args),
-        tilesize=int(options.tilesize),
-        zoom=int(options.zoom),
-        output=options.output,
-    )
+    try:
+        mosaicify(
+            target=args[0],
+            sources=set(args[1:]),
+            tiles=int(options.tiles),
+            zoom=int(options.zoom),
+            output=options.output,
+        )
+    except InvalidInput, e:
+        print "Input image '%s' can not be read." % e.input_
+    except InvalidOutput, e:
+        print "Output image '%s' can not be written." % e.output
 
 
 if __name__ == '__main__':
