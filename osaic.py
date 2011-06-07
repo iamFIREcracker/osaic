@@ -286,7 +286,7 @@ def _main():
     try:
         mosaicify(
             target=args[0],
-            sources=set(args[1:]),
+            sources=set(args[1:] or args),
             tiles=int(options.tiles),
             zoom=int(options.zoom),
             output=options.output,
