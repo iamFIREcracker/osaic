@@ -19,34 +19,13 @@ def random_element(seq):
     return seq[randint(0, len(seq) - 1)]
 
 
-def tileify(image, tiles, zoom):
-    """Transform the given image into a collection of tiles.
-    
-    Accepted keywords:
-        image image to tileify.
-        tiles how many tiles to use per dimension.
-        zoom zoom factor handy for resizing the mosaic.
-    """
-    (width, height) = image.size
-    image = image.resize((width * zoom, height * zoom))
-
-    (tile_w, tile_h) = (width * zoom // tiles, height * zoom // tiles)
-
-    mosaic = [[None for i in xrange(tiles)] for j in xrange(tiles)]
-    for i in xrange(tiles):
-        for j in xrange(tiles):
-            (x, y) = (j * tile_w, i * tile_h)
-            mosaic[i][j] = Tile(image.crop((x, y, x + tile_w, y + tile_h)))
-    return mosaic
-    
-
 def untileify(mosaic):
     """Transform the given mosaic into an image.
 
     Accepted keywords:
         mosaic collection of tiles created using ``tileify``.
     """
-    (tile_w, tile_h) = mosaic[0][0].size
+    (tile_w, tile_h) = mosaic[0][0][0]
     tiles = len(mosaic)
 
     image = Image.new("RGB", (tile_w * tiles, tile_h * tiles))
@@ -54,7 +33,7 @@ def untileify(mosaic):
         for j in xrange(len(mosaic[0])):
             # pate the tile to the output surface
             (x, y) = (j * tile_w, i * tile_h)
-            image.paste(mosaic[i][j].image, (x, y, x + tile_w, y + tile_h))
+            image.paste(mosaic[i][j][2].image, (x, y, x + tile_w, y + tile_h))
     return image
 
 
@@ -76,8 +55,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     if not source_tiles:
         raise ValueError("The tile list cannot be empty.")
 
-    for tile in mosaic:
-        color = tile.average_color
+    for (tilesize, color, tile) in mosaic:
         new_tile = random_element(source_tiles).colorify(color)
         tile.paste(new_tile)
         
@@ -195,9 +173,26 @@ class Mosaic(object):
             raise ValueError("Zoom level cannot be smaller than 0.")
 
         try:
-            self.tiles = tileify(Image.open(target), tiles, zoom)
+            image = Image.open(target)
         except IOError:
             raise InvalidInput(target)
+
+        (width, height) = image.size
+        (tile_w, tile_h) = (width // tiles, height // tiles)
+        (zoomed_tile_w, zoomed_tile_h) = \
+                (width * zoom // tiles, height * zoom// tiles)
+
+        self.mosaic = [[None for i in xrange(tiles)] for j in xrange(tiles)]
+        for i in xrange(tiles):
+            for j in xrange(tiles):
+                (x, y) = (j * tile_w, i * tile_h)
+                tile = Tile(image.crop((x, y, x + tile_w, y + tile_h)))
+                color = tile.average_color
+                tile.size = (zoomed_tile_w, zoomed_tile_h)
+                self.mosaic[i][j] = ((zoomed_tile_w, zoomed_tile_h),
+                                     color,
+                                     tile)
+
 
         # internal state used while iterating over the tiles.
         self.i = self.j = 0
@@ -217,14 +212,14 @@ class Mosaic(object):
         Raise:
             StopIteration.
         """
-        if self.i == len(self.tiles):
+        if self.i == len(self.mosaic):
             self.i == self.j == 0
             raise StopIteration()
 
-        tile = self.tiles[self.i][self.j]
+        tile = self.mosaic[self.i][self.j]
 
         self.j += 1
-        if self.j == len(self.tiles):
+        if self.j == len(self.mosaic):
             self.i += 1
             self.j = 0
 
@@ -239,7 +234,7 @@ class Mosaic(object):
     @property
     def tilesize(self):
         """Return the size of used tiles."""
-        return self.tiles[0][0].size
+        return self.mosaic[0][0][0]
 
     def save(self, filename):
         """Save the mosaic on a file.
@@ -251,13 +246,13 @@ class Mosaic(object):
             InvalidOutput.
         """
         try:
-            untileify(self.tiles).save(filename)
+            untileify(self.mosaic).save(filename)
         except IOError:
             raise InvalidOutput(filename)
 
     def show(self):
         """show the mosaic on screen."""
-        untileify(self.tiles).show()
+        untileify(self.mosaic).show()
 
 
 
