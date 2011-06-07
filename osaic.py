@@ -14,6 +14,7 @@ import ImageChops
 
 
 
+
 def random_element(seq):
     """Return a random element from the given sequence."""
     return seq[randint(0, len(seq) - 1)]
@@ -97,6 +98,7 @@ class Tile(object):
     def average_color(self):
         """Return the average color of the tile."""
         (width, height) = self.image.size
+
         (N, R, G, B) = (0, 0, 0, 0)
         for (n, (r, g, b)) in self.image.getcolors(width * height):
             N += n
@@ -192,7 +194,6 @@ class Mosaic(object):
                 self.mosaic[i][j] = ((zoomed_tile_w, zoomed_tile_h),
                                      color,
                                      tile)
-
 
         # internal state used while iterating over the tiles.
         self.i = self.j = 0
