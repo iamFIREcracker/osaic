@@ -99,7 +99,7 @@ def average_color(img):
 
 
 """Object passed between different functions."""
-ImageTuple = namedtuple('ImageTuple', 'filename color blob'.split())
+ImageTuple = namedtuple('ImageTuple', 'filename color image'.split())
 
 
 class ImageWrapper(object):
@@ -286,7 +286,6 @@ def resizefunc(img, **kwargs):
     """
     ratio = kwargs.pop('ratio', None)
     size = kwargs.pop('size', None)
-    print size
 
     if ratio is not None:
         img.reratio(ratio)
@@ -384,7 +383,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     for tile_row in tile_matrix:
         for tile in tile_row:
             closest = source_list.search(tile.color)
-            closest_img = closest.blob
+            closest_img = closest.image
     # finally show the result, or dump it on a file.
     if output is None:
         img.show()

@@ -99,6 +99,16 @@ class TestImageWrapper(unittest.TestCase):
         img1 = img.crop(rect)
         self.assertEqual((width // 2, height // 2), img1.size)
 
+    def test_show_and_save(self):
+        img = ImageWrapper(filename=IMGCOLORS[0])
+        # it is not easy to test such a feature: for the moment just for
+        # the method presence. XXX
+        self.assertEquals(True, hasattr(img, 'show'))
+        # same as before, but for the ``save`` method. Too lazy for
+        # these ;-) XXX
+        self.assertEquals(True, hasattr(img, 'save'))
+
+
 
 class TestImageList(unittest.TestCase):
 
@@ -132,6 +142,8 @@ class TestImageList(unittest.TestCase):
         # search a red picture.
         img_tuple = il.search((255, 0, 0))
         self.assertEqual(IMGCOLORS[0], img_tuple.filename)
+        self.assertEqual((255, 0, 0), img_tuple.color)
+        self.assertEqual(None, img_tuple.image)
         # now a green one..
         img_tuple = il.search((0, 255, 0))
         self.assertEqual(IMGCOLORS[1], img_tuple.filename)
