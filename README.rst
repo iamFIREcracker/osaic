@@ -10,7 +10,7 @@ Dependencies
 osaic depends on the ``PIL`` library which is going to be installed
 automatically by the installation script: anyway, in order to make it
 possible to edit ``jpeg`` and ``png`` images, please install ``libjpeg``
-and ``libpng``.
+and ``libpng`` as well.
 
 
 Install
@@ -18,9 +18,9 @@ Install
 From sources::
 
     cd /path/to/workspace
-    wget http://pypi.python.org/packages/source/o/osaic/osaic-1.0.0.tar.gz
-    tar zxvf osaic-1.0.0.tar.gz
-    cd osaic-1.0.0
+    wget http://pypi.python.org/packages/source/o/osaic/osaic-1.2.1.tar.gz
+    tar zxvf osaic-1.2.1.tar.gz
+    cd osaic-1.2.1
     python setup.py install
 
 From the PyPI::
