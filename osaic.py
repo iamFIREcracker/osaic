@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-""" Create mosaics of input images.
+"""Create mosaics of input images.
 
 The module offers the possibility to create poster-alike images compound
 by small tiles representing input photos. Moreover, the module could be
@@ -45,6 +45,7 @@ XXX wrap img items, aka dictionaries.
 
 from __future__ import division
 import operator
+from collections import namedtuple
 from itertools import imap
 from itertools import izip
 from optparse import OptionParser
@@ -125,6 +126,10 @@ def deletefunc(img, **kwargs):
     
     """
     pass
+
+
+"""Object passed between different functions."""
+ImageTuple = namedtuple('ImageTuple', 'filename color blob'.split())
 
 
 class ImageWrapper(object):
@@ -262,11 +267,7 @@ class ImageList(object):
             if postfunc is not None:
                 img = postfunc(img, **kwargs)
 
-            self.insert({
-                    'filename': name,
-                    'color': [r, g, b],
-                    'blob': img,
-                })
+            self.insert(ImageTuple(name, (r, g, b), img))
 
     def __len__(self):
         """Get the length of the list of images."""
@@ -290,7 +291,7 @@ class ImageList(object):
         best_dist = None
         best_item = None
         for item in self.img_list:
-            dist = squaredistance(color, item['color'])
+            dist = squaredistance(color, item.color)
             if best_dist is None or dist < best_dist:
                 best_dist = dist
                 best_item = item
@@ -328,11 +329,7 @@ def tilefy(img, tiles):
         for (j, x) in enumerate(xrange(0, tile_width * tiles, tile_width)):
             rect = (x, y, x + tile_width, y + tile_height)
             tile = img.crop(rect)
-            matrix[i][j] = {
-                    'filename': img.filename,
-                    'color': average_color(img),
-                    'blob': None,
-                }
+            matrix[i][j] = ImageTuple(img.filename, average_color(img), None)
     return matrix
 
 

@@ -130,14 +130,14 @@ class TestImageList(unittest.TestCase):
         sources = IMGCOLORS
         il = ImageList(sources, prefunc=void, postfunc=skip)
         # search a red picture.
-        img_dict = il.search((255, 0, 0))
-        self.assertEqual(IMGCOLORS[0], img_dict['filename'])
+        img_tuple = il.search((255, 0, 0))
+        self.assertEqual(IMGCOLORS[0], img_tuple.filename)
         # now a green one..
-        img_dict = il.search((0, 255, 0))
-        self.assertEqual(IMGCOLORS[1], img_dict['filename'])
+        img_tuple = il.search((0, 255, 0))
+        self.assertEqual(IMGCOLORS[1], img_tuple.filename)
         # finally the blue one
-        img_dict = il.search((0, 0, 255))
-        self.assertEqual(IMGCOLORS[2], img_dict['filename'])
+        img_tuple = il.search((0, 0, 255))
+        self.assertEqual(IMGCOLORS[2], img_tuple.filename)
 
 
 
