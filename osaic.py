@@ -387,6 +387,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
             rect = (x, y, x + tile_width, y + tile_height)
             closest = source_list.search(tile.color)
             closest_img = closest.image
+            img._blob.paste(closest_img._blob, rect) # XXX hack
     # finally show the result, or dump it on a file.
     if output is None:
         img.show()
