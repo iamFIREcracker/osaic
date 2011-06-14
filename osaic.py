@@ -40,7 +40,6 @@ save it to a disk.
 
 
 XXX wrap img items, aka dictionaries.
-XXX wrap getcolors.
 
 """
 
@@ -60,59 +59,41 @@ def dotproduct(vec1, vec2):
     """Return doct product of given vectors."""
     return sum(imap(operator.mul, vec1, vec2))
 
+
 def difference(vec1, vec2):
     """Return difference between given vectors."""
     return imap(operator.sub, vec1, vec2)
+
 
 def squaredistance(vec1, vec2):
     """Return the square distance between given vectors."""
     return sum(v ** 2 for v in difference(vec1, vec2))
 
+
 def distance(vec1, vec2):
     """Return the distance between given vectors."""
     return squaredistance(vec1, vec2) ** 0.5
+
 
 def average_color(img):
     """Return the average color of the given image.
     
     The calculus of the average color has been implemented by looking at
     each pixel of the image and accumulate each rgb component inside
-    separate counters. For very large images, this operation could be
-    very inefficient, hence think about using a different
-    implementation.
+    separate counters.
+    
+    XXX For very large images, this operation could be very inefficient,
+    hence think about using a different implementation.
     
     """
     (width, height) = img.size
-    N = width * height
-    (r, g, b) = (0, 0, 0)
-    for (n, color) in img:
-        r += n * color[0]
-        g += n * color[1]
-        b += n * color[2]
-    return (r // N, g // N, b // N)
-
-
-def average_color_histogram(img):
-    """Return the average color of the given image.
-    
-    The implementation of this function is based on the color histogram
-    of the given image, hence it will be more efficient of the other
-    implementation, if appliet on images with large dimensions.
-
-    """
-
-    (width, height) = self.image.size
-    n = width * height
-    h = self.image.histogram()
-    return (
-            dotproduct(xrange(256), h[0:256]) // n,
-            dotproduct(xrange(256), h[256:512]) // n,
-            dotproduct(xrange(256), h[512:]) // n
-        )
-
-def random_element(seq):
-    """Return a random element from the given sequence."""
-    return seq[randint(0, len(seq) - 1)]
+    (n, r, g, b) = (0, 0, 0, 0)
+    for (many, color) in img:
+        n += many
+        r += many * color[0]
+        g += many * color[1]
+        b += many * color[2]
+    return (r // n, g // n, b // n)
 
 
 def resizefunc(img, **kwargs):
@@ -144,7 +125,6 @@ def deletefunc(img, **kwargs):
     
     """
     pass
-
 
 
 class ImageWrapper(object):
@@ -386,8 +366,10 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     When done, show the result on screen or dump it on the disk.
 
     """
+    # open target image, and divide it into tiles.
     img = ImageWrapper(filename=target)
     tile_matrix = tilefy(img, tiles)
+    # then process and sort all source tiles.
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=dumpfunc)
 
 
