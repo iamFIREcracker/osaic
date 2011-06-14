@@ -97,36 +97,6 @@ def average_color(img):
     return (r // n, g // n, b // n)
 
 
-def resizefunc(img, **kwargs):
-    """Adjust the size of the given image.
-
-    First, the ratio of the image is modified in order to match an
-    eventually specified one. Then the size of the image is modified
-    accordingly.
-
-    """
-
-    ratio = kwargs.pop('ratio', None)
-    size = kwargs.pop('size', None)
-
-    if ratio is not None:
-        img.ratio = ratio
-
-    if size is not None:
-        img.size = size
-
-    return img
-
-
-def deletefunc(img, **kwargs):
-    """Delete input image and return None.
-    
-    GC will do all the magic for us, hence we have nothing special to do
-    here: just return None, or *pass*.
-    
-    """
-    pass
-
 
 """Object passed between different functions."""
 ImageTuple = namedtuple('ImageTuple', 'filename color blob'.split())
@@ -223,6 +193,14 @@ class ImageWrapper(object):
             raise ValueError("Rectangle could not contain negative values.")
         return ImageWrapper(filename=self.filename, blob=self.blob.crop(rect))
 
+    def show(self):
+        """Display the image on screen."""
+        self.blob.show()
+
+    def save(self, filename):
+        """Save the image onto the specified file."""
+        self.blob.save(filename)
+
 
 class ImageList(object):
     """List of images, optimized for color similarity searches.
@@ -299,14 +277,40 @@ class ImageList(object):
 
 
 def resizefunc(img, **kwargs):
-    """Resize image in order to match specified dimensions.
+    """Adjust the size of the given image.
 
-    The final dimension of the image is passed as 'size' keyword.
+    First, the ratio of the image is modified in order to match an
+    eventually specified one. Then the size of the image is modified
+    accordingly.
 
     """
-    size = kwargs.pop('size')
-    img.resize(size)
+    ratio = kwargs.pop('ratio', None)
+    size = kwargs.pop('size', None)
+    print size
+
+    if ratio is not None:
+        img.reratio(ratio)
+
+    if size is not None:
+        img.resize(size)
+
     return img
+
+
+def voidfunc(img, **kwargs):
+    """Do nothing special from returning the image as is."""
+    return img
+
+
+def deletefunc(img, **kwargs):
+    """Delete input image and return None.
+    
+    GC will do all the magic for us, hence we have nothing special to do
+    here: just return None, or *pass*.
+    
+    """
+    pass
+
 
 
 def tilefy(img, tiles):
@@ -363,18 +367,29 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     When done, show the result on screen or dump it on the disk.
 
     """
-    # open target image, and divide it into tiles.
+    # open target image, and divide it into tiles..
     img = ImageWrapper(filename=target)
     tile_matrix = tilefy(img, tiles)
-    # then process and sort all source tiles.
+    # ..process and sort all source tiles..
     tile_ratio = img.ratio
     (width, height) = img.size
-    tile_size = (width // tiles, height // tiles)
-    source_list = ImageList(sources,
-                            prefunc=resizefunc,
-                            postfunc=deletefunc,
-                            ratio=tile_ratio,
-                            size=tile_size)
+    (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
+    tile_size = (tile_width, tile_height)
+    source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
+                            ratio=tile_ratio, size=tile_size)
+    # ..prepare output image..
+    mosaic_size = (zoom * width, zoom * height)
+    img.resize(mosaic_size)
+    # ..and start to paste tiles
+    for tile_row in tile_matrix:
+        for tile in tile_row:
+            closest = source_list.search(tile.color)
+            closest_img = closest.blob
+    # finally show the result, or dump it on a file.
+    if output is None:
+        img.show()
+    else:
+        img.save(output)
 
 
 
