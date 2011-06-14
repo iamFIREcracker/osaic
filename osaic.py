@@ -377,11 +377,14 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
                             ratio=tile_ratio, size=tile_size)
     # ..prepare output image..
-    mosaic_size = (zoom * width, zoom * height)
+    (mosaic_width, mosaic_height) = (tiles * tile_width, tiles * tile_height)
+    mosaic_size = (mosaic_width, mosaic_height)
     img.resize(mosaic_size)
     # ..and start to paste tiles
-    for tile_row in tile_matrix:
-        for tile in tile_row:
+    for (i, tile_row) in enumerate(tile_matrix):
+        for (j, tile) in enumerate(tile_row):
+            (x, y) = (tile_width * j, tile_height * i)
+            rect = (x, y, x + tile_width, y + tile_height)
             closest = source_list.search(tile.color)
             closest_img = closest.image
     # finally show the result, or dump it on a file.
