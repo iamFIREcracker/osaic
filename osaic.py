@@ -367,7 +367,14 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     img = ImageWrapper(filename=target)
     tile_matrix = tilefy(img, tiles)
     # then process and sort all source tiles.
-    source_list = ImageList(sources, prefunc=resizefunc, postfunc=dumpfunc)
+    tile_ratio = img.ratio
+    (width, height) = img.size
+    tile_size = (width // tiles, height // tiles)
+    source_list = ImageList(sources,
+                            prefunc=resizefunc,
+                            postfunc=deletefunc,
+                            ratio=tile_ratio,
+                            size=tile_size)
 
 
 
