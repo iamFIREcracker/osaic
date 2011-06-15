@@ -42,6 +42,7 @@ save it to a disk.
 
 from __future__ import division
 import operator
+from collections import deque
 from collections import namedtuple
 from itertools import imap
 from itertools import izip
@@ -90,6 +91,14 @@ def average_color(img):
         b += many * color[2]
     return (r // n, g // n, b // n)
 
+
+def quantize_color(color, levels):
+    """Reduce the spectrum of the given color.
+
+    Remap the spectrum of each component from [0, 255], to [0,levels[.
+
+    """
+    return tuple(v * (levels - 1) // 255 for v in color)
 
 
 """Object passed between different functions."""
@@ -226,7 +235,7 @@ class ImageList(object):
         the functions, should be passed as *keyword* arguments.
 
         """
-        self.img_list = []
+        self.img_list = dict()
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
 
@@ -264,18 +273,25 @@ class ImageList(object):
         possibility to use different images for the same average color.
 
         """
-        self.img_list.append(image)
+        quantized = quantize_color(image.color, 16)
+        self.img_list.setdefault(quantized, deque()).append(image)
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
+        (r, g, b) = color
+        quantized = quantize_color(color, 16)
+
         best_dist = None
         best_item = None
-        for item in self.img_list:
-            dist = squaredistance(color, item.color)
+        for (item_color, item) in self.img_list.iteritems():
+            dist = squaredistance(quantized, item_color)
             if best_dist is None or dist < best_dist:
                 best_dist = dist
                 best_item = item
-        return best_item
+
+        item = best_item.popleft()
+        best_item.append(item)
+        return item
 
 
 def resizefunc(img, **kwargs):
