@@ -171,6 +171,10 @@ class ImageWrapper(object):
         size of the result image need to be modified to match desired
         ratio; consequently, part of the image will be thrown away.
 
+        XXX while cropping an image to modify the ratio, think about
+        extracting the middle part (both horizontally and vertically),
+        or even better, use the image baricenter.
+
         """
         if ratio < 0:
             raise ValueError("Ratio could not assume negative values.")
@@ -260,6 +264,9 @@ class ImageList(object):
         a blob object representing the raw processed image. Note that
         after the application of the ``postfunc`` filter, it is possible
         for the blob object to be None.
+
+        XXX implement a collision mechanism that will enable the
+        possibility to use different images for the same average color.
 
         """
         self.img_list.append(image)
