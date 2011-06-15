@@ -38,9 +38,6 @@ Once we are done with all the tiles of the target image, we will be able
 to either show the image on screen - watchout from large images ;-) - or
 save it to a disk.
 
-
-XXX wrap img items, aka dictionaries.
-
 """
 
 from __future__ import division
@@ -82,9 +79,6 @@ def average_color(img):
     The calculus of the average color has been implemented by looking at
     each pixel of the image and accumulate each rgb component inside
     separate counters.
-    
-    XXX For very large images, this operation could be very inefficient,
-    hence think about using a different implementation.
     
     """
     (width, height) = img.size
@@ -135,7 +129,8 @@ class ImageWrapper(object):
         color, a la ``groupby``, even tough the latter would return
         (color, n), instead of (n, color) like we do.
 
-        XXX Moreover we could decide to use the color histogram.
+        XXX For very large images, we could think of using the color
+        histogram.
 
         """
         (width, height) = self.size
@@ -172,8 +167,7 @@ class ImageWrapper(object):
         ratio; consequently, part of the image will be thrown away.
 
         XXX while cropping an image to modify the ratio, think about
-        extracting the middle part (both horizontally and vertically),
-        or even better, use the image baricenter.
+        using the image baricenter.
 
         """
         if ratio < 0:
@@ -181,10 +175,11 @@ class ImageWrapper(object):
 
         (width, height) = self.size
         if (width / height) > ratio:
-            (width, height) = (ratio * height, height)
+            (new_width, new_height) = (int(ratio * height), height)
         else:
-            (width, height) = (width, width / ratio)
-        self._blob = self._blob.crop((0, 0, int(width), int(height)))
+            (new_width, new_height) = (width, int(width / ratio))
+        (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
+        self._blob = self._blob.crop(imap(int, (x, y, new_width, new_height)))
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
