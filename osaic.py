@@ -188,7 +188,8 @@ class ImageWrapper(object):
         else:
             (new_width, new_height) = (width, int(width / ratio))
         (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
-        self._blob = self._blob.crop(imap(int, (x, y, new_width, new_height)))
+        rect = (x, y, x + new_width, y + new_height)
+        self._blob = self._blob.crop(imap(int, rect))
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
