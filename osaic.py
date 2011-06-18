@@ -42,7 +42,6 @@ save it to a disk.
 
 from __future__ import division
 import operator
-from collections import deque
 from collections import namedtuple
 from itertools import imap
 from itertools import izip
@@ -99,6 +98,11 @@ def quantize_color(color, levels):
 
     """
     return tuple(v * (levels - 1) // 255 for v in color)
+
+
+def random_element(seq):
+    """Return a random element of given sequence."""
+    return seq[randint(0, len(seq) - 1)]
 
 
 """Object passed between different functions."""
@@ -266,7 +270,7 @@ class ImageList(object):
         """Insert a new image in the list.
         
         Objects enqueued in the list are dictionaries containing the
-        minimal amount of metadata required to handle images, nanely the
+        minimal amount of metadata required to handle images, namely the
         name of the image, its average color (we cache the value), and
         a blob object representing the raw processed image. Note that
         after the application of the ``postfunc`` filter, it is possible
@@ -277,7 +281,7 @@ class ImageList(object):
 
         """
         quantized = quantize_color(image.color, 16)
-        self.img_list.setdefault(quantized, deque()).append(image)
+        self.img_list.setdefault(quantized, list()).append(image)
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
@@ -292,10 +296,7 @@ class ImageList(object):
                     best_dist = dist
                     best_item = item
             self._cache[quantized] = best_item
-
-        item = best_item.popleft()
-        best_item.append(item)
-        return item
+        return random_element(best_item)
 
 
 def resizefunc(img, **kwargs):
