@@ -7,6 +7,11 @@ import unittest
 
 import Image
 
+from osaic import dotproduct
+from osaic import difference
+from osaic import squaredistance
+from osaic import distance
+from osaic import quantize_color
 from osaic import ImageWrapper
 from osaic import ImageList
 
@@ -30,11 +35,52 @@ def imgcolors_fini():
     for filename in IMGCOLORS:
         os.unlink(filename)
 
+
 def setUpModule():
     imgcolors_init()
 
+
 def tearDownModule():
     imgcolors_fini()
+
+
+
+class TestFunctions(unittest.TestCase):
+
+    def test_vectors(self):
+        v1 = [1, 2, 3, 4]
+        v2 = [5, 6, 7, 8]
+        v3 = [0, 0, 0, 0]
+        # dot product
+        self.assertEquals(70, dotproduct(v1, v2))
+        self.assertEquals(0, dotproduct(v1, v3))
+        # vector difference
+        self.assertEquals([4, 4, 4, 4], difference(v2, v1))
+        self.assertEquals(v2, difference(v2, v3))
+        # squaredisance
+        self.assertEquals(30, squaredistance(v1, v3))
+        self.assertEquals(64, squaredistance(v2, v1))
+        # distance
+        self.assertEquals(30 ** .5, distance(v1, v3))
+        self.assertEquals(8, distance(v2, v1))
+
+    def test_average(self):
+        # XXX
+        pass
+
+    def test_quantize(self):
+        red = (255, 0, 0)
+        # sanity checks
+        self.assertRaises(ValueError, quantize_color, red, 0)
+        self.assertRaises(ValueError, quantize_color, red, 257)
+        self.assertRaises(ValueError, quantize_color, red, 128, 'asd')
+        # noop
+        self.assertEquals(red, quantize_color(red, 256))
+        # misc quantization
+        self.assertEquals((192, 0, 0), quantize_color(red, 4, 'bottom'))
+        self.assertEquals((224, 32, 32), quantize_color(red, 4, 'middle'))
+        self.assertEquals((255, 63, 63), quantize_color(red, 4, 'top'))
+
 
 
 class TestImageWrapper(unittest.TestCase):
