@@ -276,9 +276,6 @@ class ImageList(object):
         after the application of the ``postfunc`` filter, it is possible
         for the blob object to be None.
 
-        XXX implement a collision mechanism that will enable the
-        possibility to use different images for the same average color.
-
         """
         quantized = quantize_color(image.color, 16)
         self.img_list.setdefault(quantized, list()).append(image)
