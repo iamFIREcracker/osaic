@@ -53,6 +53,14 @@ import Image
 import ImageChops
 
 
+"""Mode of quantization of color components.
+
+XXX
+
+"""
+QUANTIZATION_MODES = 'bottom middle top'.split()
+
+
 def dotproduct(vec1, vec2):
     """Return doct product of given vectors."""
     return sum(imap(operator.mul, vec1, vec2))
@@ -91,17 +99,30 @@ def average_color(img):
     return (r // n, g // n, b // n)
 
 
-def quantize_color(color, levels):
+def quantize_color(color, levels, mode='middle'):
     """Reduce the spectrum of the given color.
 
     Remap the spectrum of each component from [0, 255], to [0,levels[.
 
     """
-    if levels == 256:
-        return color
     if levels <= 0 or levels > 256:
         raise ValueError("Number of levels should be in range ]0, 256].")
-    return tuple(v * (levels - 1) // 255 for v in color)
+    if mode not in QUANTIZATION_MODES:
+        raise ValueError("Mode should be one of %s." %
+                            (' '.join(QUANTIZATION_MODES)))
+
+    if levels == 256:
+        return color
+
+    if mode == 'top':
+        inc = 256 // levels
+    elif mode == 'middle':
+        inc = 256 // levels // 2
+    else: # 'bottom'
+        inc = 0
+
+    ret = [v * (levels - 1) // 255 * 256 // levels + inc for v in color]
+    return tuple(ret)
 
 
 def random_element(seq):
