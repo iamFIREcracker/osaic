@@ -97,6 +97,8 @@ def quantize_color(color, levels):
     Remap the spectrum of each component from [0, 255], to [0,levels[.
 
     """
+    if levels == 256:
+        return color
     return tuple(v * (levels - 1) // 255 for v in color)
 
 
@@ -239,12 +241,17 @@ class ImageList(object):
         additional arguments to filter functions, everything, included
         the functions, should be passed as *keyword* arguments.
 
+        To group together similar images, we can quantize the average
+        color of sources; in particular it is possible to specify the
+        number of levels, ``qlevels``, each color component will have at
+        the end of the whole process.
+
         """
         self._cache = dict()
         self.img_list = dict()
-
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
+        qlevels = kwargs.pop('qlevels', 256)
 
         if iterable is None:
             raise ValueError("Empty image list.")
@@ -255,12 +262,12 @@ class ImageList(object):
             if prefunc is not None:
                 img = prefunc(img, **kwargs)
 
-            (r, g, b) = average_color(img)
+            color = quantize_color(average_color(img), qlevels)
 
             if postfunc is not None:
                 img = postfunc(img, **kwargs)
 
-            self.insert(ImageTuple(name, (r, g, b), img))
+            self.insert(ImageTuple(name, color, img))
 
     def __len__(self):
         """Get the length of the list of images."""
@@ -277,22 +284,19 @@ class ImageList(object):
         for the blob object to be None.
 
         """
-        quantized = quantize_color(image.color, 16)
-        self.img_list.setdefault(quantized, list()).append(image)
+        self.img_list.setdefault(image.color, list()).append(image)
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
-        (r, g, b) = color
-        quantized = quantize_color(color, 16)
-        best_item = self._cache.get(quantized, None)
+        best_item = self._cache.get(color, None)
         if best_item is None:
             best_dist = None
             for (item_color, item) in self.img_list.iteritems():
-                dist = squaredistance(quantized, item_color)
+                dist = squaredistance(color, item_color)
                 if best_dist is None or dist < best_dist:
                     best_dist = dist
                     best_item = item
-            self._cache[quantized] = best_item
+            self._cache[color] = best_item
         return random_element(best_item)
 
 
@@ -356,14 +360,14 @@ def tilefy(img, tiles):
     return matrix
 
 
-def mosaicify(target, sources, tiles=32, zoom=1, output=None):
+def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
     """Create mosaic of photos.
     
     The function wraps all process of the creation of a mosaic, given
     the target, the list of source images, the number of tiles to use
-    per side, the zoom level (a.k.a.  how large the mosaic will be) and
-    finally wether we are interested in displaying the result on screen
-    or dump it on a file.
+    per side, the zoom level (a.k.a.  how large the mosaic will be),
+    whether we are interested or not in color quantization, and finally
+    if we want to display the output on screen or dump it on a file.
 
     First, open the target image, divide it into the specified number of
     tiles, and store information about the tiles average color. In
@@ -395,7 +399,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
     tile_size = (tile_width, tile_height)
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
-                            ratio=tile_ratio, size=tile_size)
+                            ratio=tile_ratio, size=tile_size, qlevels=levels)
     # ..prepare output image..
     (mosaic_width, mosaic_height) = (tiles * tile_width, tiles * tile_height)
     mosaic_size = (mosaic_width, mosaic_height)
@@ -418,7 +422,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
 
 def _build_parser():
     """Return a command-line arguments parser."""
-    usage = "Usage: %prog [-t TILES] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
+    usage = "Usage: %prog [-t TILES] [-z ZOOM] [-l LEVELS] [-o OUTPUT] IMAGE1 ..."
     parser = OptionParser(usage=usage)
 
     config = OptionGroup(parser, "Configuration Options")
@@ -426,6 +430,9 @@ def _build_parser():
                       help="Number of tiles per side.", metavar="TILES")
     config.add_option("-z", "--zoom", dest="zoom", default="1",
                       help="Zoom level of the mosaic.", metavar="ZOOM")
+    config.add_option("-l", "--levels", dest="levels", default="256",
+                      help="Color quantization levels, per component",
+                      metavar="LEVELS")
     config.add_option("-o", "--output", dest="output", default=None,
                       help="Save output instead of showing it.",
                       metavar="OUTPUT")
@@ -448,6 +455,7 @@ def _main():
         sources=set(args[1:] or args),
         tiles=int(options.tiles),
         zoom=int(options.zoom),
+        levels=int(options.levels),
         output=options.output,
     )
 
