@@ -43,7 +43,6 @@ save it to a disk.
 from __future__ import division
 import operator
 from collections import namedtuple
-from itertools import imap
 from itertools import izip
 from optparse import OptionParser
 from optparse import OptionGroup
@@ -63,12 +62,12 @@ QUANTIZATION_MODES = 'bottom middle top'.split()
 
 def dotproduct(vec1, vec2):
     """Return doct product of given vectors."""
-    return sum(imap(operator.mul, vec1, vec2))
+    return sum(map(operator.mul, vec1, vec2))
 
 
 def difference(vec1, vec2):
     """Return difference between given vectors."""
-    return imap(operator.sub, vec1, vec2)
+    return map(operator.sub, vec1, vec2)
 
 
 def squaredistance(vec1, vec2):
@@ -103,6 +102,7 @@ def quantize_color(color, levels, mode='middle'):
     """Reduce the spectrum of the given color.
 
     Remap the spectrum of each component from [0, 255], to [0,levels[.
+    XXX
 
     """
     if levels <= 0 or levels > 256:
@@ -115,12 +115,13 @@ def quantize_color(color, levels, mode='middle'):
         return color
 
     if mode == 'top':
-        inc = 256 // levels
+        inc = 256 // levels - 1
     elif mode == 'middle':
         inc = 256 // levels // 2
     else: # 'bottom'
         inc = 0
 
+    # XXX refactor
     ret = [v * (levels - 1) // 255 * 256 // levels + inc for v in color]
     return tuple(ret)
 
@@ -218,7 +219,7 @@ class ImageWrapper(object):
             (new_width, new_height) = (width, int(width / ratio))
         (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
         rect = (x, y, x + new_width, y + new_height)
-        self._blob = self._blob.crop(imap(int, rect))
+        self._blob = self._blob.crop(map(int, rect))
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
