@@ -99,6 +99,8 @@ def quantize_color(color, levels):
     """
     if levels == 256:
         return color
+    if levels <= 0 or levels > 256:
+        raise ValueError("Number of levels should be in range ]0, 256].")
     return tuple(v * (levels - 1) // 255 for v in color)
 
 
