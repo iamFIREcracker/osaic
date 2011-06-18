@@ -236,7 +236,9 @@ class ImageList(object):
         the functions, should be passed as *keyword* arguments.
 
         """
+        self._cache = dict()
         self.img_list = dict()
+
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
 
@@ -281,14 +283,15 @@ class ImageList(object):
         """Search the most similar image in terms of average color."""
         (r, g, b) = color
         quantized = quantize_color(color, 16)
-
-        best_dist = None
-        best_item = None
-        for (item_color, item) in self.img_list.iteritems():
-            dist = squaredistance(quantized, item_color)
-            if best_dist is None or dist < best_dist:
-                best_dist = dist
-                best_item = item
+        best_item = self._cache.get(quantized, None)
+        if best_item is None:
+            best_dist = None
+            for (item_color, item) in self.img_list.iteritems():
+                dist = squaredistance(quantized, item_color)
+                if best_dist is None or dist < best_dist:
+                    best_dist = dist
+                    best_item = item
+            self._cache[quantized] = best_item
 
         item = best_item.popleft()
         best_item.append(item)
