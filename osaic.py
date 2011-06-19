@@ -294,7 +294,6 @@ class ImageList(object):
         the end of the whole process.
 
         """
-        self._cache = dict()
         self.img_list = dict()
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
@@ -335,9 +334,6 @@ class ImageList(object):
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
-        if color in self._cache:
-            return random_element(self._cache[color])
-
         best_item = None
         best_dist = None
         for (item_color, item) in self.img_list.iteritems():
@@ -345,7 +341,6 @@ class ImageList(object):
             if best_dist is None or dist < best_dist:
                 best_dist = dist
                 best_item = item
-        self._cache[color] = best_item
         return random_element(best_item)
 
 
