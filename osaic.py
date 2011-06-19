@@ -7,7 +7,7 @@ The module offers the possibility to create poster-alike images compound
 by small tiles representing input photos. Moreover, the module could be
 used both as a standalone application and as a standard python library.
 
-Given a list of input images, the first of them will be chosed as
+Given a list of input images, the first of them will be chosen as
 target, i.e. the final image. On the other hand, other images will be
 chosen in turn, modified, and finally placed in the right position of
 the final mosaic image.
@@ -30,12 +30,12 @@ which in our case corresponds to its average color.
 
 At this point everything is ready to actually create the mosaic. For
 each tile extracted from the target image, look inside the efficient
-data stucture and spot which of the available tiles has an average color
+data structure and spot which of the available tiles has an average color
 the most similar to the current one. Then we have to paste such found
 tile in place of the original one.
 
 Once we are done with all the tiles of the target image, we will be able
-to either show the image on screen - watchout from large images ;-) - or
+to either show the image on screen - watch out from large images ;-) - or
 save it to a disk.
 
 """
@@ -57,7 +57,7 @@ QUANTIZATION_MODES = 'bottom middle top'.split()
 
 
 def dotproduct(vec1, vec2):
-    """Return doct product of given vectors."""
+    """Return dot product of given vectors."""
     return sum(map(operator.mul, vec1, vec2))
 
 
@@ -154,7 +154,7 @@ class ImageWrapper(object):
     """Wrapper around the ``Image`` object from the PIL library.
 
     We need to create our own image api and abstract, to the whole
-    module layer, the inderlaying image processing library.
+    module layer, the underlaying image processing library.
 
     """
 
@@ -179,14 +179,14 @@ class ImageWrapper(object):
     def __iter__(self):
         """Iterate over the colors of the image.
 
-        Return consecutive tuples containing the occurencies of a given
+        Return consecutive tuples containing the occurrences of a given
         color, a la ``groupby``, even tough the latter would return
         (color, n), instead of (n, color) like we do.
 
         TODO For very large images, we could think of using the color
         histogram. Consequently we need only to return an array
-        containing only 256*3 values instead of the acqual width*height
-        long.
+        containing only 256*3 values instead of the actual width*height
+        length.
 
         """
         (width, height) = self.size
@@ -281,7 +281,7 @@ class ImageList(object):
         """Initialize the internal list of images.
 
         Other than the list of filenames representing the images to
-        index, it will come in handy to either preprocess or postprocess
+        index, it will come in handy to either pre-process or post-process
         indexed images: hence users could specify ``prefunc`` and
         ``postfunc`` functions while creating a new list of images. In
         particular, in order to implement the possibility to pass
@@ -324,7 +324,7 @@ class ImageList(object):
         """Insert a new image in the list.
         
         Objects enqueued in the list are dictionaries containing the
-        minimal amount of metadata required to handle images, namely the
+        minimal amount of meta-data required to handle images, namely the
         name of the image, its average color (we cache the value), and
         a blob object representing the raw processed image. Note that
         after the application of the ``postfunc`` filter, it is possible
@@ -391,10 +391,10 @@ def tilefy(img, tiles):
     Return a matrix composed by tile-objects, i.e. dictionaries,
     containing useful information for the final mosaic.
     
-    In our particolar case we are in need of the average color of the
+    In our particular case we are in need of the average color of the
     region representing a specific tile. For compatibility with the
     objects used for the ``ImageList`` we set the filename and blob
-    fields eithter.
+    fields either.
 
     """
     matrix = [[None for i in xrange(tiles)] for j in xrange(tiles)]
@@ -420,19 +420,19 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
 
     First, open the target image, divide it into the specified number of
     tiles, and store information about the tiles average color. In
-    orther to reduce the amount of used memory, we will free the *blobs*
+    order to reduce the amount of used memory, we will free the *blobs*
     associated to each processed image, as soon as possible, aka inside
     the ``postfunc`` function.
 
     Then, index all the source images by color. Given that we are aware
     about the size and the ratio of the tiles of the target, we can use
     the ``prefunc`` to reduce the dimension of the image; consequently
-    the amount of computations needed to compute the avergage color will
+    the amount of computations needed to compute the average color will
     smaller. Moreover, as in the previous paragraph, there is no need to
     keep into processed images, hence we are going to use the
     ``postfunc`` method to delete them.
 
-    Finally, for each tile extranted from the target image, we need to
+    Finally, for each tile extracted from the target image, we need to
     find the most similar contained inside the list of source images,
     and paste it in the right position inside the mosaic image.
 
