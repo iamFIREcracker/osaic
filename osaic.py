@@ -312,13 +312,13 @@ class ImageList(object):
             if postfunc is not None:
                 img = postfunc(img, **kwargs)
 
-            self.insert(ImageTuple(name, color, img))
+            self._insert(ImageTuple(name, color, img))
 
     def __len__(self):
         """Get the length of the list of images."""
         return len(self._img_list)
 
-    def insert(self, image):
+    def _insert(self, image):
         """Insert a new image in the list.
         
         Objects enqueued in the list are dictionaries containing the
