@@ -128,7 +128,15 @@ def quantize_color(color, levels, mode='middle'):
     else: # 'bottom'
         inc = 0
 
-    # XXX refactor
+    # first map each component from the range [0, 256[ to [0, levels[:
+    #       v * (levels - 1) // 255
+    # then remap values to the range of default values [0, 256[, but
+    # this time instead of obtaining all the possible values, we get
+    # only discrete values:
+    #       .. * 256 // levels
+    # finally, depending on the specified mode, grab the bottom, middle
+    # or top value of the result range:
+    #       .. + inc
     ret = [v * (levels - 1) // 255 * 256 // levels + inc for v in color]
     return tuple(ret)
 
