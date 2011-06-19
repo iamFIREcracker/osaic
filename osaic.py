@@ -162,11 +162,6 @@ def quantize_color(color, levels=8, mode='middle'):
     return tuple(ret)
 
 
-def random_element(seq):
-    """Return a random element of given sequence."""
-    return seq[randint(0, len(seq) - 1)]
-
-
 
 """Object passed between different functions."""
 ImageTuple = namedtuple('ImageTuple', 'filename color image'.split())
