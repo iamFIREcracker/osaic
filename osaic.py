@@ -38,6 +38,25 @@ Once we are done with all the tiles of the target image, we will be able
 to either show the image on screen - watch out from large images ;-) - or
 save it to a disk.
 
+TODO:
+
+    - Use a KD-Tree for the internal logic of the ``ImageList`` object.
+
+    - Resize input if too large. Maybe we could implement an adaptive
+      way to compute the target size depending on the number of
+      specified tiles and zoom level.
+
+    - In order to reduce the amount of work load, we could quantize
+      target and source images.
+
+    - While iterating over the colors of very large images, we could
+      think of using the color histogram to reduce the length of output
+      array.
+
+    - While cropping an image to modify the ratio, we could probably use
+      the image barycenter in order to throw away useless parts of the
+      image.
+
 """
 
 from __future__ import division
@@ -186,11 +205,6 @@ class ImageWrapper(object):
         color, a la ``groupby``, even tough the latter would return
         (color, n), instead of (n, color) like we do.
 
-        TODO For very large images, we could think of using the color
-        histogram. Consequently we need only to return an array
-        containing only 256*3 values instead of the actual width*height
-        length.
-
         """
         (width, height) = self.size
         return iter(self._blob.getcolors(width * height))
@@ -224,10 +238,6 @@ class ImageWrapper(object):
         A consequence of the ratio modification, is image shrink; the
         size of the result image need to be modified to match desired
         ratio; consequently, part of the image will be thrown away.
-
-        TODO while cropping an image to modify the ratio, we could
-        probably use the image barycenter in order to throw away useless
-        parts of the image.
 
         """
         if ratio < 0:
@@ -274,9 +284,6 @@ class ImageList(object):
     images; in particular, its implementation will be optimized for
     queries asking for similar images, where the similarity metric is
     based on the average color.
-
-    TODO the current - dumb - implementation, is ``list`` based, but will
-    be replaced with with a ``KD-Tree`` as soon as possible.
 
     """
 
