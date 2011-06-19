@@ -10,7 +10,6 @@ import Image
 from osaic import dotproduct
 from osaic import difference
 from osaic import squaredistance
-from osaic import distance
 from osaic import average_color
 from osaic import quantize_color
 from osaic import ImageWrapper
@@ -61,9 +60,6 @@ class TestFunctions(unittest.TestCase):
         # squaredisance
         self.assertEquals(30, squaredistance(v1, v3))
         self.assertEquals(64, squaredistance(v2, v1))
-        # distance
-        self.assertEquals(30 ** .5, distance(v1, v3))
-        self.assertEquals(8, distance(v2, v1))
 
     def test_average(self):
         # XXX

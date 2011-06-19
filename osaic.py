@@ -92,11 +92,6 @@ def squaredistance(vec1, vec2):
     return sum(v ** 2 for v in difference(vec1, vec2))
 
 
-def distance(vec1, vec2):
-    """Return the distance between given vectors."""
-    return squaredistance(vec1, vec2) ** 0.5
-
-
 def average_color(img):
     """Return the average color of the given image.
     
