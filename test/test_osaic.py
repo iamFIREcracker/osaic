@@ -11,6 +11,7 @@ from osaic import dotproduct
 from osaic import difference
 from osaic import squaredistance
 from osaic import distance
+from osaic import average_color
 from osaic import quantize_color
 from osaic import ImageWrapper
 from osaic import ImageList
@@ -144,6 +145,21 @@ class TestImageWrapper(unittest.TestCase):
         rect = (0, 0, width // 2, height // 2)
         img1 = img.crop(rect)
         self.assertEqual((width // 2, height // 2), img1.size)
+
+    def test_paste(self):
+        img = ImageWrapper(filename=IMGCOLORS[0])
+        img1 = ImageWrapper(filename=IMGCOLORS[1])
+        # paste ``img`` on the first on the left part of ``img1``
+        color = average_color(img)
+        color1 = average_color(img1)
+        (width, height) = img1.size
+        (new_width, new_height) = (width // 2, height)
+        img.resize((new_width, new_height))
+        img1.paste(img, (0, 0, new_width, new_height))
+        self.assertNotEquals(color1, average_color(img1))
+        # paste it again on the right.
+        img1.paste(img, (new_width, 0, width, height))
+        self.assertEquals(color, average_color(img1))
 
     def test_show_and_save(self):
         img = ImageWrapper(filename=IMGCOLORS[0])

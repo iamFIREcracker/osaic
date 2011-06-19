@@ -215,7 +215,7 @@ class ImageWrapper(object):
         ratio; consequently, part of the image will be thrown away.
 
         TODO while cropping an image to modify the ratio, we could
-        probably use the imae baricenter in order to throw away useless
+        probably use the image barycenter in order to throw away useless
         parts of the image.
 
         """
@@ -242,6 +242,11 @@ class ImageWrapper(object):
             raise ValueError("Rectangle could not contain negative values.")
         return ImageWrapper(filename=self.filename, blob=self.blob.crop(rect))
 
+    def paste(self, image, rect):
+        """Paste given image over the current one."""
+        self._blob.paste(image._blob, rect)
+
+        
     def show(self):
         """Display the image on screen."""
         self.blob.show()
@@ -447,7 +452,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
             rect = (x, y, x + tile_width, y + tile_height)
             closest = source_list.search(quantize_color(tile.color, levels))
             closest_img = closest.image
-            img._blob.paste(closest_img._blob, rect) # XXX hack
+            img.paste(closest_img, rect)
     # finally show the result, or dump it on a file.
     if output is None:
         img.show()
