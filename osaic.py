@@ -52,11 +52,7 @@ import Image
 import ImageChops
 
 
-"""Mode of quantization of color components.
-
-XXX
-
-"""
+"""Mode of quantization of color components."""
 QUANTIZATION_MODES = 'bottom middle top'.split()
 
 
@@ -101,8 +97,19 @@ def average_color(img):
 def quantize_color(color, levels, mode='middle'):
     """Reduce the spectrum of the given color.
 
-    Remap the spectrum of each component from [0, 255], to [0,levels[.
-    XXX
+    Each color component is forced to assume only certain values instead
+    depending on the specified number of levels needed. If for example
+    instead of 256 different levels, we need only a couple of them, each
+    color component will be mapped into two ranges, namely [0, 128[ and
+    [128, 256[.
+
+    This way, given that multiple colors are possibly mapped on the same
+    range of values and it is possible to decide to use as final output,
+    the bottom, the middle or the top value of those ranges. Carrying on
+    the example above, by default a color like (10, 10, 10), will match
+    the first range of each component; hence, depending on the chosen
+    mode, it will return (0, 0, 0), (64, 64, 64) or (127, 127, 127).
+
 
     """
     if levels <= 0 or levels > 256:
@@ -168,8 +175,10 @@ class ImageWrapper(object):
         color, a la ``groupby``, even tough the latter would return
         (color, n), instead of (n, color) like we do.
 
-        XXX For very large images, we could think of using the color
-        histogram.
+        TODO For very large images, we could think of using the color
+        histogram. Consequently we need only to return an array
+        containing only 256*3 values instead of the acqual width*height
+        long.
 
         """
         (width, height) = self.size
@@ -205,8 +214,9 @@ class ImageWrapper(object):
         size of the result image need to be modified to match desired
         ratio; consequently, part of the image will be thrown away.
 
-        XXX while cropping an image to modify the ratio, think about
-        using the image baricenter.
+        TODO while cropping an image to modify the ratio, we could
+        probably use the imae baricenter in order to throw away useless
+        parts of the image.
 
         """
         if ratio < 0:
