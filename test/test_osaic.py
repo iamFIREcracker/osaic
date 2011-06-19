@@ -77,6 +77,7 @@ class TestFunctions(unittest.TestCase):
         self.assertEquals((192, 0, 0), quantize_color(red, 4, 'bottom'))
         self.assertEquals((224, 32, 32), quantize_color(red, 4, 'middle'))
         self.assertEquals((255, 63, 63), quantize_color(red, 4, 'top'))
+        self.assertEquals((192, 64, 64), quantize_color((240, 10, 20), 2, 'middle'))
 
 
 
