@@ -115,7 +115,7 @@ def average_color(img):
     return (r // n, g // n, b // n)
 
 
-def quantize_color(color, levels, mode='middle'):
+def quantize_color(color, levels=8, mode='middle'):
     """Reduce the spectrum of the given color.
 
     Each color component is forced to assume only certain values instead
@@ -299,7 +299,7 @@ class ImageList(object):
         the functions, should be passed as *keyword* arguments.
 
         """
-        self.img_list = dict()
+        self._img_list = dict()
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
 
@@ -321,7 +321,7 @@ class ImageList(object):
 
     def __len__(self):
         """Get the length of the list of images."""
-        return len(self.img_list)
+        return len(self._img_list)
 
     def insert(self, image):
         """Insert a new image in the list.
@@ -334,18 +334,34 @@ class ImageList(object):
         for the blob object to be None.
 
         """
-        self.img_list.setdefault(image.color, list()).append(image)
+        # create two levels of hierarchy by first indexing group of
+        # images having the same quantized average color.
+        qcolor = quantize_color(image.color)
+        self._img_list.setdefault(qcolor, list()).append(image)
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
-        best_item = None
+        # first find the group of images having the same quantized
+        # average color.
+        qcolor = quantize_color(color)
+        best_img_list = None
         best_dist = None
-        for (item_color, item) in self.img_list.iteritems():
-            dist = squaredistance(color, item_color)
+        for (img_list_color, img_list) in self._img_list.iteritems():
+            dist = squaredistance(qcolor, img_list_color)
             if best_dist is None or dist < best_dist:
                 best_dist = dist
-                best_item = item
-        return random_element(best_item)
+                best_img_list = img_list
+        # now spot which of the images in the list is equal to the
+        # target one.
+        best_img = None
+        best_dist = None
+        for img_wrapper in best_img_list:
+            dist = squaredistance(color, img_wrapper.color)
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best_img = img_wrapper
+        # finally return the best match.
+        return best_img
 
 
 def resizefunc(img, **kwargs):
