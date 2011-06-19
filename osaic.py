@@ -107,7 +107,7 @@ def average_color(img):
     """
     (width, height) = img.size
     (n, r, g, b) = (0, 0, 0, 0)
-    for (many, color) in img:
+    for (color, many) in img:
         n += many
         r += many * color[0]
         g += many * color[1]
@@ -199,15 +199,20 @@ class ImageWrapper(object):
                 raise
 
     def __iter__(self):
-        """Iterate over the colors of the image.
+        """Iterate over the colors of the image."""
+        (width, height) = self.size
+        self._iter = iter(self._blob.getcolors(width * height))
+        return self
+
+    def next(self):
+        """Return each color of the image.
 
         Return consecutive tuples containing the occurrences of a given
-        color, a la ``groupby``, even tough the latter would return
-        (color, n), instead of (n, color) like we do.
+        color, a la ``itertools.groupby``: (color, occurrences).
 
         """
-        (width, height) = self.size
-        return iter(self._blob.getcolors(width * height))
+        (many, color) = next(self._iter)
+        return (color, many)
 
     @property
     def blob(self):
