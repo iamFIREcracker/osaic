@@ -312,15 +312,17 @@ class ImageList(object):
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
-        best_item = self._cache.get(color, None)
-        if best_item is None:
-            best_dist = None
-            for (item_color, item) in self.img_list.iteritems():
-                dist = squaredistance(color, item_color)
-                if best_dist is None or dist < best_dist:
-                    best_dist = dist
-                    best_item = item
-            self._cache[color] = best_item
+        if color in self._cache:
+            return random_element(self._cache[color])
+
+        best_item = None
+        best_dist = None
+        for (item_color, item) in self.img_list.iteritems():
+            dist = squaredistance(color, item_color)
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best_item = item
+        self._cache[color] = best_item
         return random_element(best_item)
 
 
@@ -433,7 +435,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
         for (j, tile) in enumerate(tile_row):
             (x, y) = (tile_width * j, tile_height * i)
             rect = (x, y, x + tile_width, y + tile_height)
-            closest = source_list.search(tile.color)
+            closest = source_list.search(quantize_color(tile.color, levels))
             closest_img = closest.image
             img._blob.paste(closest_img._blob, rect) # XXX hack
     # finally show the result, or dump it on a file.
