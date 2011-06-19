@@ -52,8 +52,10 @@ import Image
 import ImageChops
 
 
+
 """Mode of quantization of color components."""
 QUANTIZATION_MODES = 'bottom middle top'.split()
+
 
 
 def dotproduct(vec1, vec2):
@@ -144,6 +146,7 @@ def quantize_color(color, levels, mode='middle'):
 def random_element(seq):
     """Return a random element of given sequence."""
     return seq[randint(0, len(seq) - 1)]
+
 
 
 """Object passed between different functions."""
@@ -288,16 +291,10 @@ class ImageList(object):
         additional arguments to filter functions, everything, included
         the functions, should be passed as *keyword* arguments.
 
-        To group together similar images, we can quantize the average
-        color of sources; in particular it is possible to specify the
-        number of levels, ``qlevels``, each color component will have at
-        the end of the whole process.
-
         """
         self.img_list = dict()
         prefunc = kwargs.pop('prefunc', None)
         postfunc = kwargs.pop('postfunc', None)
-        qlevels = kwargs.pop('qlevels', 256)
 
         if iterable is None:
             raise ValueError("Empty image list.")
@@ -308,7 +305,7 @@ class ImageList(object):
             if prefunc is not None:
                 img = prefunc(img, **kwargs)
 
-            color = quantize_color(average_color(img), qlevels)
+            color = average_color(img)
 
             if postfunc is not None:
                 img = postfunc(img, **kwargs)
@@ -404,14 +401,14 @@ def tilefy(img, tiles):
     return matrix
 
 
-def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
+def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     """Create mosaic of photos.
     
     The function wraps all process of the creation of a mosaic, given
     the target, the list of source images, the number of tiles to use
-    per side, the zoom level (a.k.a.  how large the mosaic will be),
-    whether we are interested or not in color quantization, and finally
-    if we want to display the output on screen or dump it on a file.
+    per side, the zoom level (a.k.a.  how large the mosaic will be), and
+    finally if we want to display the output on screen or dump it on
+    a file.
 
     First, open the target image, divide it into the specified number of
     tiles, and store information about the tiles average color. In
@@ -443,7 +440,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
     (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
     tile_size = (tile_width, tile_height)
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
-                            ratio=tile_ratio, size=tile_size, qlevels=levels)
+                            ratio=tile_ratio, size=tile_size)
     # ..prepare output image..
     (mosaic_width, mosaic_height) = (tiles * tile_width, tiles * tile_height)
     mosaic_size = (mosaic_width, mosaic_height)
@@ -453,7 +450,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
         for (j, tile) in enumerate(tile_row):
             (x, y) = (tile_width * j, tile_height * i)
             rect = (x, y, x + tile_width, y + tile_height)
-            closest = source_list.search(quantize_color(tile.color, levels))
+            closest = source_list.search(tile.color)
             closest_img = closest.image
             img.paste(closest_img, rect)
     # finally show the result, or dump it on a file.
@@ -466,7 +463,7 @@ def mosaicify(target, sources, tiles=32, zoom=1, levels=256, output=None):
 
 def _build_parser():
     """Return a command-line arguments parser."""
-    usage = "Usage: %prog [-t TILES] [-z ZOOM] [-l LEVELS] [-o OUTPUT] IMAGE1 ..."
+    usage = "Usage: %prog [-t TILES] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
     parser = OptionParser(usage=usage)
 
     config = OptionGroup(parser, "Configuration Options")
@@ -474,9 +471,6 @@ def _build_parser():
                       help="Number of tiles per side.", metavar="TILES")
     config.add_option("-z", "--zoom", dest="zoom", default="1",
                       help="Zoom level of the mosaic.", metavar="ZOOM")
-    config.add_option("-l", "--levels", dest="levels", default="256",
-                      help="Color quantization levels, per component",
-                      metavar="LEVELS")
     config.add_option("-o", "--output", dest="output", default=None,
                       help="Save output instead of showing it.",
                       metavar="OUTPUT")
@@ -499,7 +493,6 @@ def _main():
         sources=set(args[1:] or args),
         tiles=int(options.tiles),
         zoom=int(options.zoom),
-        levels=int(options.levels),
         output=options.output,
     )
 
