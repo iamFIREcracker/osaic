@@ -67,8 +67,8 @@ from optparse import OptionParser
 from optparse import OptionGroup
 from random import randint
 
-import Image
-import ImageChops
+from PIL import Image
+from PIL import ImageChops
 
 
 

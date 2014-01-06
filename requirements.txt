@@ -1,1 +1,2 @@
-PIL
+Pillow==2.3.0
+argparse==1.2.1
