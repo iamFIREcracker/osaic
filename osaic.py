@@ -62,13 +62,10 @@ TODO:
 from __future__ import division
 import operator
 from collections import namedtuple
-from itertools import izip
 from optparse import OptionParser
 from optparse import OptionGroup
-from random import randint
 
 from PIL import Image
-from PIL import ImageChops
 
 
 
@@ -94,11 +91,11 @@ def squaredistance(vec1, vec2):
 
 def average_color(img):
     """Return the average color of the given image.
-    
+
     The calculus of the average color has been implemented by looking at
     each pixel of the image and accumulate each rgb component inside
     separate counters.
-    
+
     """
     (width, height) = img.size
     (n, r, g, b) = (0, 0, 0, 0)
@@ -181,6 +178,7 @@ class ImageWrapper(object):
 
         """
         self.filename = kwargs.pop('filename')
+        self._iter = None
         self._blob = kwargs.pop('blob', None)
         if self.blob is None:
             try:
@@ -245,7 +243,7 @@ class ImageWrapper(object):
             (new_width, new_height) = (width, int(width / ratio))
         (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
         rect = (x, y, x + new_width, y + new_height)
-        self._blob = self._blob.crop(map(int, rect))
+        self._blob = self._blob.crop([int(v) for v in rect])
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
@@ -262,7 +260,6 @@ class ImageWrapper(object):
         """Paste given image over the current one."""
         self._blob.paste(image._blob, rect)
 
-        
     def show(self):
         """Display the image on screen."""
         self.blob.show()
@@ -274,7 +271,7 @@ class ImageWrapper(object):
 
 class ImageList(object):
     """List of images, optimized for color similarity searches.
-    
+
     The class should be though as the implementation of a database of
     images; in particular, its implementation will be optimized for
     queries asking for similar images, where the similarity metric is
@@ -320,7 +317,7 @@ class ImageList(object):
 
     def _insert(self, image):
         """Insert a new image in the list.
-        
+
         Objects enqueued in the list are dictionaries containing the
         minimal amount of meta-data required to handle images, namely the
         name of the image, its average color (we cache the value), and
@@ -379,19 +376,9 @@ def resizefunc(img, **kwargs):
     return img
 
 
-def voidfunc(img, **kwargs):
+def voidfunc(img, **_):
     """Do nothing special from returning the image as is."""
     return img
-
-
-def deletefunc(img, **kwargs):
-    """Delete input image and return None.
-    
-    GC will do all the magic for us, hence we have nothing special to do
-    here: just return None, or *pass*.
-    
-    """
-    pass
 
 
 
@@ -400,7 +387,7 @@ def tilefy(img, tiles):
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
     containing useful information for the final mosaic.
-    
+
     In our particular case we are in need of the average color of the
     region representing a specific tile. For compatibility with the
     objects used for the ``ImageList`` we set the filename and blob
@@ -421,7 +408,7 @@ def tilefy(img, tiles):
 
 def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     """Create mosaic of photos.
-    
+
     The function wraps all process of the creation of a mosaic, given
     the target, the list of source images, the number of tiles to use
     per side, the zoom level (a.k.a.  how large the mosaic will be), and
