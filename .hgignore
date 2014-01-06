@@ -1,4 +1,6 @@
 syntax: glob
 
 *.JPG
+build/*
+dist/*
 osaic.egg-info/*
