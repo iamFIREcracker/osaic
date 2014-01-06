@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
 import os
+from setuptools import find_packages
 from setuptools import setup
 
 
 VERSION = '2.0.0'
 NAME = 'osaic'
-MODULES = [NAME]
 DESCRIPTION = 'Create mosaics from images with ``python -mosaic image``'
-readme = os.path.join(os.path.dirname(__file__), 'README.rst')
-LONG_DESCRIPTION = open(readme).read()
-requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
-INSTALL_REQUIRES = open(requirements).read().split()
+README = os.path.join(os.path.dirname(__file__), 'README.rst')
+LONG_DESCRIPTION = open(README).read()
+REQUIREMENTS = os.path.join(os.path.dirname(__file__), 'requirements.txt')
+INSTALL_REQUIRES = open(REQUIREMENTS).read().split()
 
 URL = 'https://bitbucket.org/iamFIREcracker/osaic'
 DOWNLOAD_URL = 'http://pypi.python.org/pypi/osaic'
@@ -32,10 +32,10 @@ AUTHOR = 'Matteo Landi'
 AUTHOR_EMAIL = 'landimatte@gmail.com'
 KEYWORDS = "photo image mosaic creator".split(' ')
 
-params = dict(
+PARAMS = dict(
     name=NAME,
     version=VERSION,
-    py_modules=MODULES,
+    packages=find_packages(),
     install_requires=INSTALL_REQUIRES,
 
     # metadata for upload to PyPI
@@ -48,8 +48,6 @@ params = dict(
     url=URL,
     download_url=DOWNLOAD_URL,
     classifiers=CLASSIFIERS,
-    provides=MODULES,
-    requires=INSTALL_REQUIRES,
 )
 
-setup(**params)
+setup(**PARAMS)
