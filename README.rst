@@ -144,7 +144,7 @@ indexing, and search of neighbour images depending on the average
 color::
 
     >>> import osaic
-    >>> osaic.mosaificy(
+    >>> osaic.mosaicify(
     ...     target='foo.png',
     ...     sources=['bar.png', 'asd.png', 'bazinga.png'],
     ...     tiles=128,
