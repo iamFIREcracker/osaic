@@ -367,9 +367,28 @@ def voidfunc(img, **_):
     return img
 
 
+def lattice(width, height, rectangles_per_size):
+    """Creates a lattice width height big and containing `rectangles_per_size`
+    rectangles per size.
 
-def tilefy(img, num_tiles):
-    """Convert input image into a matrix of num_tiles.
+    The lattice is returned as a list of rectangle definitions, which are
+    tuples containing:
+        - top-left point x offset
+        - top-left point y offset
+        - bottom-right point x offset
+        - bottom-right point y offset
+    """
+    (tile_width, tile_height) = (width // rectangles_per_size,
+                                 height // rectangles_per_size)
+    for i in xrange(rectangles_per_size):
+        for j in xrange(rectangles_per_size):
+            (x_offset, y_offset) = (j * tile_width, i * tile_height)
+            yield (x_offset, y_offset,
+                   x_offset + tile_width, y_offset + tile_height)
+
+
+def tilefy(img, tiles_per_size):
+    """Convert input image into a matrix of tiles_per_size.
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
     containing useful information for the final mosaic.
@@ -380,17 +399,10 @@ def tilefy(img, num_tiles):
     fields either.
 
     """
-    matrix = [[None for i in xrange(num_tiles)] for j in xrange(num_tiles)]
     (width, height) = img.size
-    (tile_width, tile_height) = (width // num_tiles, height // num_tiles)
-    for i in xrange(num_tiles):
-        for j in xrange(num_tiles):
-            (x_offset, y_offset) = (j * tile_width, i * tile_height)
-            rect = (x_offset, y_offset,
-                    x_offset + tile_width, y_offset + tile_height)
-            tile = img.crop(rect)
-            matrix[i][j] = ImageTuple(img.filename, average_color(tile), None)
-    return matrix
+    for rect in lattice(width, height, tiles_per_size):
+        tile = img.crop(rect)
+        yield (rect, ImageTuple(img.filename, average_color(tile), None))
 
 
 def mosaicify(target, sources, tiles=32, zoom=1, output=None):
@@ -438,13 +450,10 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     mosaic_size = (mosaic_width, mosaic_height)
     img.resize(mosaic_size)
     # ..and start to paste tiles
-    for (i, tile_row) in enumerate(tile_matrix):
-        for (j, tile) in enumerate(tile_row):
-            (x, y) = (tile_width * j, tile_height * i)
-            rect = (x, y, x + tile_width, y + tile_height)
-            closest = source_list.search(tile.color)
-            closest_img = closest.image
-            img.paste(closest_img, rect)
+    for (rect, tile) in tile_matrix:
+        closest = source_list.search(tile.color)
+        closest_img = closest.image
+        img.paste(closest_img, rect)
     # finally show the result, or dump it on a file.
     if output is None:
         img.show()
