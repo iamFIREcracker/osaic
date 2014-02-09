@@ -64,6 +64,7 @@ import operator
 from collections import namedtuple
 from optparse import OptionParser
 from optparse import OptionGroup
+from functools import partial
 
 from PIL import Image
 
@@ -246,14 +247,6 @@ class ImageWrapper(object):
         """Paste given image over the current one."""
         self.blob.paste(image.blob, rect)
 
-    def show(self):
-        """Display the image on screen."""
-        self.blob.show()
-
-    def save(self, filename):
-        """Save the image onto the specified file."""
-        self.blob.save(filename)
-
 
 class ImageList(object):
     """List of images, optimized for color similarity searches.
@@ -405,7 +398,7 @@ def tilefy(img, tiles_per_size):
         yield (rect, ImageTuple(img.filename, average_color(tile), None))
 
 
-def mosaicify(target, sources, tiles=32, zoom=1, output=None):
+def mosaicify(target, sources, tiles=32, zoom=1):
     """Create mosaic of photos.
 
     The function wraps all process of the creation of a mosaic, given
@@ -460,12 +453,16 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
         closest = source_list.search(tile.color)
         mosaic.paste(closest.image, rect)
 
-    # finally show the result, or dump it on a file.
-    if output is None:
-        mosaic.show()
-    else:
-        mosaic.save(output)
+    return mosaic
 
+
+def show(img):
+    """Display the image on screen."""
+    img.blob.show()
+
+def save(img, destination):
+    """Save the image onto the specified file."""
+    img.blob.save(destination)
 
 
 def _build_parser():
@@ -495,13 +492,16 @@ def _main():
         parser.print_help()
         exit(1)
 
-    mosaicify(
+    mosaic = mosaicify(
         target=args[0],
         sources=set(args[1:] or args),
         tiles=int(options.tiles),
-        zoom=int(options.zoom),
-        output=options.output,
+        zoom=int(options.zoom)
     )
+    if options.output is None:
+        show(mosaic)
+    else:
+        partial(save, destination=options.output)
 
 
 if __name__ == '__main__':
