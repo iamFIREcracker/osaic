@@ -180,10 +180,10 @@ class ImageWrapper(object):
 
         """
         self.filename = kwargs.pop('filename')
-        self._blob = kwargs.pop('blob', None)
+        self.blob = kwargs.pop('blob', None)
         if self.blob is None:
             try:
-                self._blob = Image.open(self.filename)
+                self.blob = Image.open(self.filename)
             except IOError:
                 raise
 
@@ -191,29 +191,24 @@ class ImageWrapper(object):
     def colors(self):
         """Get all the colors of the image."""
         (width, height) = self.size
-        return iter(self._blob.getcolors(width * height))
-
-    @property
-    def blob(self):
-        """Get image object as implemented by image library."""
-        return self._blob
+        return iter(self.blob.getcolors(width * height))
 
     @property
     def size(self):
         """Return a tuple representing the size of the image."""
-        return self._blob.size
+        return self.blob.size
 
     def resize(self, size):
         """Set the size of the image."""
         if any(v < 0 for v in size):
             raise ValueError("Size could not contain negative values.")
 
-        self._blob = self._blob.resize(size)
+        self.blob = self.blob.resize(size)
 
     @property
     def ratio(self):
         """Get the ratio (width / height) of the image."""
-        (width, height) = self._blob.size
+        (width, height) = self.blob.size
         return (width / height)
 
     def reratio(self, ratio):
@@ -234,7 +229,7 @@ class ImageWrapper(object):
             (new_width, new_height) = (width, int(width / ratio))
         (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
         rect = (x, y, x + new_width, y + new_height)
-        self._blob = self._blob.crop([int(v) for v in rect])
+        self.blob = self.blob.crop([int(v) for v in rect])
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
@@ -249,7 +244,7 @@ class ImageWrapper(object):
 
     def paste(self, image, rect):
         """Paste given image over the current one."""
-        self._blob.paste(image._blob, rect)
+        self.blob.paste(image.blob, rect)
 
     def show(self):
         """Display the image on screen."""
