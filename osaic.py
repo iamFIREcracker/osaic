@@ -437,23 +437,25 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     """
     # open target image, and divide it into tiles..
     img = ImageWrapper(filename=target)
-    tile_matrix = tilefy(img, tiles)
+    original_tiles = tilefy(img, tiles)
+
     # ..process and sort all source tiles..
-    tile_ratio = img.ratio
     (width, height) = img.size
     (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
+    tile_ratio = img.ratio
     tile_size = (tile_width, tile_height)
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
                             ratio=tile_ratio, size=tile_size)
+
     # ..prepare output image..
-    (mosaic_width, mosaic_height) = (tiles * tile_width, tiles * tile_height)
-    mosaic_size = (mosaic_width, mosaic_height)
+    mosaic_size = (tiles * tile_width, tiles * tile_height)
     img.resize(mosaic_size)
+
     # ..and start to paste tiles
-    for (rect, tile) in tile_matrix:
+    for (rect, tile) in original_tiles:
         closest = source_list.search(tile.color)
-        closest_img = closest.image
-        img.paste(closest_img, rect)
+        img.paste(closest.image, rect)
+
     # finally show the result, or dump it on a file.
     if output is None:
         img.show()
