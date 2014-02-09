@@ -64,6 +64,7 @@ import operator
 from collections import namedtuple
 from optparse import OptionParser
 from optparse import OptionGroup
+from functools import partial
 
 from PIL import Image
 
@@ -98,13 +99,15 @@ def average_color(img):
 
     """
     (width, height) = img.size
-    (n, r, g, b) = (0, 0, 0, 0)
-    for (color, many) in img:
-        n += many
-        r += many * color[0]
-        g += many * color[1]
-        b += many * color[2]
-    return (r // n, g // n, b // n)
+    num_pixels = width * height
+    (total_red, total_green, total_blue) = (0, 0, 0)
+    for (occurrences, (red, green, blue)) in img.colors:
+        total_red += occurrences * red
+        total_green += occurrences * green
+        total_blue += occurrences * blue
+    return (total_red // num_pixels,
+            total_green // num_pixels,
+            total_blue // num_pixels)
 
 
 def quantize_color(color, levels=8, mode='middle'):
@@ -178,51 +181,35 @@ class ImageWrapper(object):
 
         """
         self.filename = kwargs.pop('filename')
-        self._iter = None
-        self._blob = kwargs.pop('blob', None)
+        self.blob = kwargs.pop('blob', None)
         if self.blob is None:
             try:
-                self._blob = Image.open(self.filename)
+                self.blob = Image.open(self.filename)
             except IOError:
                 raise
 
-    def __iter__(self):
-        """Iterate over the colors of the image."""
-        (width, height) = self.size
-        self._iter = iter(self._blob.getcolors(width * height))
-        return self
-
-    def next(self):
-        """Return each color of the image.
-
-        Return consecutive tuples containing the occurrences of a given
-        color, a la ``itertools.groupby``: (color, occurrences).
-
-        """
-        (many, color) = next(self._iter)
-        return (color, many)
-
     @property
-    def blob(self):
-        """Get image object as implemented by image library."""
-        return self._blob
+    def colors(self):
+        """Get all the colors of the image."""
+        (width, height) = self.size
+        return iter(self.blob.getcolors(width * height))
 
     @property
     def size(self):
         """Return a tuple representing the size of the image."""
-        return self._blob.size
+        return self.blob.size
 
     def resize(self, size):
         """Set the size of the image."""
         if any(v < 0 for v in size):
             raise ValueError("Size could not contain negative values.")
 
-        self._blob = self._blob.resize(size)
+        self.blob = self.blob.resize(size)
 
     @property
     def ratio(self):
         """Get the ratio (width / height) of the image."""
-        (width, height) = self._blob.size
+        (width, height) = self.blob.size
         return (width / height)
 
     def reratio(self, ratio):
@@ -243,7 +230,7 @@ class ImageWrapper(object):
             (new_width, new_height) = (width, int(width / ratio))
         (x, y) = ((width - new_width) / 2, (height - new_height) / 2)
         rect = (x, y, x + new_width, y + new_height)
-        self._blob = self._blob.crop([int(v) for v in rect])
+        self.blob = self.blob.crop([int(v) for v in rect])
 
     def crop(self, rect):
         """Crop the image matching the given rectangle.
@@ -258,15 +245,7 @@ class ImageWrapper(object):
 
     def paste(self, image, rect):
         """Paste given image over the current one."""
-        self._blob.paste(image._blob, rect)
-
-    def show(self):
-        """Display the image on screen."""
-        self.blob.show()
-
-    def save(self, filename):
-        """Save the image onto the specified file."""
-        self.blob.save(filename)
+        self.blob.paste(image.blob, rect)
 
 
 class ImageList(object):
@@ -381,9 +360,28 @@ def voidfunc(img, **_):
     return img
 
 
+def lattice(width, height, rectangles_per_size):
+    """Creates a lattice width height big and containing `rectangles_per_size`
+    rectangles per size.
 
-def tilefy(img, tiles):
-    """Convert input image into a matrix of tiles.
+    The lattice is returned as a list of rectangle definitions, which are
+    tuples containing:
+        - top-left point x offset
+        - top-left point y offset
+        - bottom-right point x offset
+        - bottom-right point y offset
+    """
+    (tile_width, tile_height) = (width // rectangles_per_size,
+                                 height // rectangles_per_size)
+    for i in xrange(rectangles_per_size):
+        for j in xrange(rectangles_per_size):
+            (x_offset, y_offset) = (j * tile_width, i * tile_height)
+            yield (x_offset, y_offset,
+                   x_offset + tile_width, y_offset + tile_height)
+
+
+def tilefy(img, tiles_per_size):
+    """Convert input image into a matrix of tiles_per_size.
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
     containing useful information for the final mosaic.
@@ -394,19 +392,13 @@ def tilefy(img, tiles):
     fields either.
 
     """
-    matrix = [[None for i in xrange(tiles)] for j in xrange(tiles)]
     (width, height) = img.size
-    (tile_width, tile_height) = (width // tiles, height // tiles)
-    (x, y) = (0, 0)
-    for (i, y) in enumerate(xrange(0, tile_height * tiles, tile_height)):
-        for (j, x) in enumerate(xrange(0, tile_width * tiles, tile_width)):
-            rect = (x, y, x + tile_width, y + tile_height)
-            tile = img.crop(rect)
-            matrix[i][j] = ImageTuple(img.filename, average_color(tile), None)
-    return matrix
+    for rect in lattice(width, height, tiles_per_size):
+        tile = img.crop(rect)
+        yield (rect, ImageTuple(img.filename, average_color(tile), None))
 
 
-def mosaicify(target, sources, tiles=32, zoom=1, output=None):
+def mosaicify(target, sources, tiles=32, zoom=1):
     """Create mosaic of photos.
 
     The function wraps all process of the creation of a mosaic, given
@@ -436,34 +428,41 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     When done, show the result on screen or dump it on the disk.
 
     """
-    # open target image, and divide it into tiles..
-    img = ImageWrapper(filename=target)
-    tile_matrix = tilefy(img, tiles)
-    # ..process and sort all source tiles..
-    tile_ratio = img.ratio
-    (width, height) = img.size
-    (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
-    tile_size = (tile_width, tile_height)
-    source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
-                            ratio=tile_ratio, size=tile_size)
-    # ..prepare output image..
-    (mosaic_width, mosaic_height) = (tiles * tile_width, tiles * tile_height)
-    mosaic_size = (mosaic_width, mosaic_height)
-    img.resize(mosaic_size)
-    # ..and start to paste tiles
-    for (i, tile_row) in enumerate(tile_matrix):
-        for (j, tile) in enumerate(tile_row):
-            (x, y) = (tile_width * j, tile_height * i)
-            rect = (x, y, x + tile_width, y + tile_height)
-            closest = source_list.search(tile.color)
-            closest_img = closest.image
-            img.paste(closest_img, rect)
-    # finally show the result, or dump it on a file.
-    if output is None:
-        img.show()
-    else:
-        img.save(output)
+    mosaic = ImageWrapper(filename=target)
 
+    # ..process and sort all source tiles..
+    (width, height) = mosaic.size
+    (zoomed_tile_width, zoomed_tile_height) = (zoom * width // tiles,
+                                               zoom * height // tiles)
+    zoomed_tile_size = (zoomed_tile_width, zoomed_tile_height)
+    source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
+                            ratio=mosaic.ratio, size=zoomed_tile_size)
+
+    # Get the list of composing tiles and resize the original image as per
+    # configured 'zoom' factor.
+    #
+    # Note that it is really important to create the tiles lattice before
+    # resizing the original image because otherwise we will be doing more
+    # work than the one really needed
+    original_tiles = tilefy(mosaic, tiles)
+    mosaic.resize((tiles * zoomed_tile_width, tiles * zoomed_tile_height))
+
+    # Iterate original tiles, look for the best matching alternative --
+    # in terms of color distance -- and finally paste it into our mosaic
+    for (rect, tile) in original_tiles:
+        closest = source_list.search(tile.color)
+        mosaic.paste(closest.image, rect)
+
+    return mosaic
+
+
+def show(img):
+    """Display the image on screen."""
+    img.blob.show()
+
+def save(img, destination):
+    """Save the image onto the specified file."""
+    img.blob.save(destination)
 
 
 def _build_parser():
@@ -493,13 +492,16 @@ def _main():
         parser.print_help()
         exit(1)
 
-    mosaicify(
+    mosaic = mosaicify(
         target=args[0],
         sources=set(args[1:] or args),
         tiles=int(options.tiles),
-        zoom=int(options.zoom),
-        output=options.output,
+        zoom=int(options.zoom)
     )
+    if options.output is None:
+        show(mosaic)
+    else:
+        partial(save, destination=options.output)
 
 
 if __name__ == '__main__':
