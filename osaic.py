@@ -435,32 +435,36 @@ def mosaicify(target, sources, tiles=32, zoom=1, output=None):
     When done, show the result on screen or dump it on the disk.
 
     """
-    # open target image, and divide it into tiles..
-    img = ImageWrapper(filename=target)
-    original_tiles = tilefy(img, tiles)
+    mosaic = ImageWrapper(filename=target)
 
     # ..process and sort all source tiles..
-    (width, height) = img.size
-    (tile_width, tile_height) = (zoom * width // tiles, zoom * height // tiles)
-    tile_ratio = img.ratio
-    tile_size = (tile_width, tile_height)
+    (width, height) = mosaic.size
+    (zoomed_tile_width, zoomed_tile_height) = (zoom * width // tiles,
+                                               zoom * height // tiles)
+    zoomed_tile_size = (zoomed_tile_width, zoomed_tile_height)
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
-                            ratio=tile_ratio, size=tile_size)
+                            ratio=mosaic.ratio, size=zoomed_tile_size)
 
-    # ..prepare output image..
-    mosaic_size = (tiles * tile_width, tiles * tile_height)
-    img.resize(mosaic_size)
+    # Get the list of composing tiles and resize the original image as per
+    # configured 'zoom' factor.
+    #
+    # Note that it is really important to create the tiles lattice before
+    # resizing the original image because otherwise we will be doing more
+    # work than the one really needed
+    original_tiles = tilefy(mosaic, tiles)
+    mosaic.resize((tiles * zoomed_tile_width, tiles * zoomed_tile_height))
 
-    # ..and start to paste tiles
+    # Iterate original tiles, look for the best matching alternative --
+    # in terms of color distance -- and finally paste it into our mosaic
     for (rect, tile) in original_tiles:
         closest = source_list.search(tile.color)
-        img.paste(closest.image, rect)
+        mosaic.paste(closest.image, rect)
 
     # finally show the result, or dump it on a file.
     if output is None:
-        img.show()
+        mosaic.show()
     else:
-        img.save(output)
+        mosaic.save(output)
 
 
 
