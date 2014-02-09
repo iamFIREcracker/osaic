@@ -368,8 +368,8 @@ def voidfunc(img, **_):
 
 
 
-def tilefy(img, tiles):
-    """Convert input image into a matrix of tiles.
+def tilefy(img, num_tiles):
+    """Convert input image into a matrix of num_tiles.
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
     containing useful information for the final mosaic.
@@ -380,13 +380,14 @@ def tilefy(img, tiles):
     fields either.
 
     """
-    matrix = [[None for i in xrange(tiles)] for j in xrange(tiles)]
+    matrix = [[None for i in xrange(num_tiles)] for j in xrange(num_tiles)]
     (width, height) = img.size
-    (tile_width, tile_height) = (width // tiles, height // tiles)
-    (x, y) = (0, 0)
-    for (i, y) in enumerate(xrange(0, tile_height * tiles, tile_height)):
-        for (j, x) in enumerate(xrange(0, tile_width * tiles, tile_width)):
-            rect = (x, y, x + tile_width, y + tile_height)
+    (tile_width, tile_height) = (width // num_tiles, height // num_tiles)
+    for i in xrange(num_tiles):
+        for j in xrange(num_tiles):
+            (x_offset, y_offset) = (j * tile_width, i * tile_height)
+            rect = (x_offset, y_offset,
+                    x_offset + tile_width, y_offset + tile_height)
             tile = img.crop(rect)
             matrix[i][j] = ImageTuple(img.filename, average_color(tile), None)
     return matrix
