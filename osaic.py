@@ -180,7 +180,6 @@ class ImageWrapper(object):
 
         """
         self.filename = kwargs.pop('filename')
-        self._iter = None
         self._blob = kwargs.pop('blob', None)
         if self.blob is None:
             try:
