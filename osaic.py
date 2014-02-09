@@ -98,13 +98,15 @@ def average_color(img):
 
     """
     (width, height) = img.size
-    (n, r, g, b) = (0, 0, 0, 0)
-    for (color, many) in img:
-        n += many
-        r += many * color[0]
-        g += many * color[1]
-        b += many * color[2]
-    return (r // n, g // n, b // n)
+    num_pixels = width * height
+    (total_red, total_green, total_blue) = (0, 0, 0)
+    for (occurrences, (red, green, blue)) in img.colors:
+        total_red += occurrences * red
+        total_green += occurrences * green
+        total_blue += occurrences * blue
+    return (total_red // num_pixels,
+            total_green // num_pixels,
+            total_blue // num_pixels)
 
 
 def quantize_color(color, levels=8, mode='middle'):
@@ -186,21 +188,11 @@ class ImageWrapper(object):
             except IOError:
                 raise
 
-    def __iter__(self):
-        """Iterate over the colors of the image."""
+    @property
+    def colors(self):
+        """Get all the colors of the image."""
         (width, height) = self.size
-        self._iter = iter(self._blob.getcolors(width * height))
-        return self
-
-    def next(self):
-        """Return each color of the image.
-
-        Return consecutive tuples containing the occurrences of a given
-        color, a la ``itertools.groupby``: (color, occurrences).
-
-        """
-        (many, color) = next(self._iter)
-        return (color, many)
+        return iter(self._blob.getcolors(width * height))
 
     @property
     def blob(self):
