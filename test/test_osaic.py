@@ -47,20 +47,6 @@ def tearDownModule():
 
 class TestFunctions(unittest.TestCase):
 
-    def test_vectors(self):
-        v1 = [1, 2, 3, 4]
-        v2 = [5, 6, 7, 8]
-        v3 = [0, 0, 0, 0]
-        # dot product
-        self.assertEquals(70, dotproduct(v1, v2))
-        self.assertEquals(0, dotproduct(v1, v3))
-        # vector difference
-        self.assertEquals([4, 4, 4, 4], difference(v2, v1))
-        self.assertEquals(v2, difference(v2, v3))
-        # squaredisance
-        self.assertEquals(30, squaredistance(v1, v3))
-        self.assertEquals(64, squaredistance(v2, v1))
-
     def test_average(self):
         # XXX
         pass

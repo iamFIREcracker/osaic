@@ -77,17 +77,47 @@ QUANTIZATION_MODES = 'bottom middle top'.split()
 
 
 def dotproduct(vec1, vec2):
-    """Return dot product of given vectors."""
-    return sum(map(operator.mul, vec1, vec2))
+    """Return dot product of given vectors.
+    
+    >>> v1 = [1, 2, 3, 4]
+    >>> v2 = [5, 6, 7, 8]
+    >>> v3 = [0, 0, 0, 0]
+
+    >>> dotproduct(v1, v2)
+    70
+    >>> dotproduct(v1, v3)
+    0
+    """
+    return sum(itertools.imap(operator.mul, vec1, vec2))
 
 
 def difference(vec1, vec2):
-    """Return difference between given vectors."""
+    """Return difference between given vectors.
+    
+    >>> v1 = [1, 2, 3, 4]
+    >>> v2 = [5, 6, 7, 8]
+    >>> v3 = [0, 0, 0, 0]
+
+    >>> difference(v2, v1)
+    [4, 4, 4, 4]
+    >>> difference(v2, v3)
+    [5, 6, 7, 8]
+    """
     return map(operator.sub, vec1, vec2)
 
 
 def squaredistance(vec1, vec2):
-    """Return the square distance between given vectors."""
+    """Return the square distance between given vectors.
+
+    >>> v1 = [1, 2, 3, 4]
+    >>> v2 = [5, 6, 7, 8]
+    >>> v3 = [0, 0, 0, 0]
+
+    >>> squaredistance(v1, v3)
+    30
+    >>> squaredistance(v2, v1)
+    64
+    """
     return sum(v ** 2 for v in difference(vec1, vec2))
 
 
