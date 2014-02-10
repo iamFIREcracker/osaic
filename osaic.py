@@ -455,8 +455,7 @@ def extract_tile(filename, rectangles):
     """Extract from `img` multiple tiles covering areas described by
     `rectangles`"""
     img = ImageWrapper(filename=filename)
-    return [(rect, ImageTuple(filename, average_color(img.crop(rect)), None))
-            for rect in rectangles]
+    return [(rect, average_color(img.crop(rect))) for rect in rectangles]
 
 
 def tilefy(img, tiles_per_size, pool, workers):
@@ -535,8 +534,8 @@ def mosaicify(target, sources, tiles=32, zoom=1):
 
     # Iterate original tiles, look for the best matching alternative --
     # in terms of color distance -- and finally paste it into our mosaic
-    for (rect, tile) in original_tiles:
-        closest = source_list.search(tile.color)
+    for (rect, avg_color) in original_tiles:
+        closest = source_list.search(avg_color)
         mosaic.paste(closest.image, rect)
 
     # Shut down the pool of workers
