@@ -508,26 +508,29 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     When done, show the result on screen or dump it on the disk.
 
     """
+    # Initialize the pool of workers
     workers = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(workers)
 
+    # Load the target image into memory
     mosaic = ImageWrapper(filename=target)
 
-    # ..process and sort all source tiles..
-    (width, height) = mosaic.size
-    (zoomed_tile_width, zoomed_tile_height) = (zoom * width // tiles,
-                                               zoom * height // tiles)
+    # Compute the size of the tiles after the zoom factor has been applied
+    (original_width, original_height) = mosaic.size
+    (zoomed_tile_width, zoomed_tile_height) = (zoom * original_width // tiles,
+                                               zoom * original_height // tiles)
     zoomed_tile_size = (zoomed_tile_width, zoomed_tile_height)
+
+    # Indicize all the source images by their average color
     source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
                             ratio=mosaic.ratio, size=zoomed_tile_size)
 
-    # Get the list of composing tiles and resize the original image as per
-    # configured 'zoom' factor.
-    #
-    # Note that it is really important to create the tiles lattice before
-    # resizing the original image because otherwise we will be doing more
-    # work than the one really needed
+    # Split the original image into its composing tiles.  It's key to do this
+    # operation here -- before zooming the original image -- in order to reduce
+    # the amount of operations to do.
     original_tiles = tilefy(mosaic, tiles, pool, workers)
+
+    # Apply the zoom factor
     mosaic.resize((tiles * zoomed_tile_width, tiles * zoomed_tile_height))
 
     # Iterate original tiles, look for the best matching alternative --
@@ -535,6 +538,10 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     for (rect, tile) in original_tiles:
         closest = source_list.search(tile.color)
         mosaic.paste(closest.image, rect)
+
+    # Shut down the pool of workers
+    pool.close()
+    pool.join()
 
     return mosaic
 
