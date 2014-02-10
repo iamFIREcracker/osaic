@@ -61,6 +61,7 @@ TODO:
 
 from __future__ import division
 import itertools
+import multiprocessing
 import operator
 from collections import namedtuple
 from optparse import OptionParser
@@ -450,7 +451,15 @@ def lattice(width, height, rectangles_per_size):
                    x_offset + tile_width, y_offset + tile_height)
 
 
-def tilefy(img, tiles_per_size):
+def extract_tile(filename, rectangles):
+    """Extract from `img` multiple tiles covering areas described by
+    `rectangles`"""
+    img = ImageWrapper(filename=filename)
+    return [(rect, ImageTuple(filename, average_color(img.crop(rect)), None))
+            for rect in rectangles]
+
+
+def tilefy(img, tiles_per_size, pool, workers):
     """Convert input image into a matrix of tiles_per_size.
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
@@ -463,9 +472,10 @@ def tilefy(img, tiles_per_size):
 
     """
     (width, height) = img.size
-    for rect in lattice(width, height, tiles_per_size):
-        tile = img.crop(rect)
-        yield (rect, ImageTuple(img.filename, average_color(tile), None))
+    return flatten(
+        pool.map(partial(extract_tile, img.filename),
+                 splitter(workers,
+                          list(lattice(width, height, tiles_per_size)))))
 
 
 def mosaicify(target, sources, tiles=32, zoom=1):
@@ -498,6 +508,9 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     When done, show the result on screen or dump it on the disk.
 
     """
+    workers = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(workers)
+
     mosaic = ImageWrapper(filename=target)
 
     # ..process and sort all source tiles..
@@ -514,7 +527,7 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     # Note that it is really important to create the tiles lattice before
     # resizing the original image because otherwise we will be doing more
     # work than the one really needed
-    original_tiles = tilefy(mosaic, tiles)
+    original_tiles = tilefy(mosaic, tiles, pool, workers)
     mosaic.resize((tiles * zoomed_tile_width, tiles * zoomed_tile_height))
 
     # Iterate original tiles, look for the best matching alternative --
