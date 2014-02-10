@@ -5,7 +5,7 @@ import os
 import sys
 import unittest
 
-import Image
+from PIL import Image
 
 from osaic import dotproduct
 from osaic import difference
