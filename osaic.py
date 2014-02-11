@@ -504,19 +504,16 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     rectangles = list(lattice(zoomed_width, zoomed_height, tiles))
 
     # Find which source image best fits each mosaic tile
-    best_matching_imgs = search_matching_images(source_list, avg_colors, pool,
-                                                workers)
-
-    # Paste tiles onto the mosaic
-    for (rect, filename) in itertools.izip(rectangles, best_matching_imgs):
-        img = sources[filename]
-        mosaic.paste(img, rect)
+    best_matching_imgs = list(search_matching_images(source_list, avg_colors,
+                                                     pool, workers))
 
     # Shut down the pool of workers
     pool.close()
     pool.join()
 
-    return mosaic
+    return Mosaic(mosaic, (zoomed_width, zoomed_height),
+                  list(itertools.izip(rectangles, best_matching_imgs)),
+                  sources)
 
 
 def _build_parser():
@@ -537,15 +534,6 @@ def _build_parser():
     return parser
 
 
-def show(img):
-    """Display the image on screen."""
-    img.blob.show()
-
-def save(img, destination):
-    """Save the image onto the specified file."""
-    img.blob.save(destination)
-
-
 def _main():
     """Run the command-line interface."""
     parser = _build_parser()
@@ -561,10 +549,11 @@ def _main():
         tiles=int(options.tiles),
         zoom=int(options.zoom)
     )
+
     if options.output is None:
-        show(mosaic)
+        mosaic.show()
     else:
-        partial(save, destination=options.output)
+        mosaic.save(options.output)
 
 
 if __name__ == '__main__':
