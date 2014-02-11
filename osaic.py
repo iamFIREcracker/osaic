@@ -63,7 +63,6 @@ from __future__ import division
 import itertools
 import multiprocessing
 import operator
-from collections import namedtuple
 from optparse import OptionParser
 from optparse import OptionGroup
 from functools import partial
@@ -190,10 +189,6 @@ def quantize_color(color, levels=8, mode='middle'):
 
 
 
-"""Object passed between different functions."""
-ImageTuple = namedtuple('ImageTuple', 'filename color image'.split())
-
-
 class ImageWrapper(object):
     """Wrapper around the ``Image`` object from the PIL library.
 
@@ -290,57 +285,15 @@ class ImageList(object):
 
     """
 
-    def __init__(self, iterable=None, **kwargs):
-        """Initialize the internal list of images.
-
-        Other than the list of filenames representing the images to
-        index, it will come in handy to either pre-process or post-process
-        indexed images: hence users could specify ``prefunc`` and
-        ``postfunc`` functions while creating a new list of images. In
-        particular, in order to implement the possibility to pass
-        additional arguments to filter functions, everything, included
-        the functions, should be passed as *keyword* arguments.
-
-        """
+    def __init__(self, images):
+        """Initialize the internal list of images."""
         self._img_list = dict()
-        prefunc = kwargs.pop('prefunc', None)
-        postfunc = kwargs.pop('postfunc', None)
 
-        if iterable is None:
-            raise ValueError("Empty image list.")
-
-        for name in iterable:
-            img = ImageWrapper(filename=name)
-
-            if prefunc is not None:
-                img = prefunc(img, **kwargs)
-
+        for img in images:
             color = average_color(img)
-
-            if postfunc is not None:
-                img = postfunc(img, **kwargs)
-
-            self._insert(ImageTuple(name, color, img))
-
-    def __len__(self):
-        """Get the length of the list of images."""
-        return len(self._img_list)
-
-    def _insert(self, image):
-        """Insert a new image in the list.
-
-        Objects enqueued in the list are dictionaries containing the
-        minimal amount of meta-data required to handle images, namely the
-        name of the image, its average color (we cache the value), and
-        a blob object representing the raw processed image. Note that
-        after the application of the ``postfunc`` filter, it is possible
-        for the blob object to be None.
-
-        """
-        # create two levels of hierarchy by first indexing group of
-        # images having the same quantized average color.
-        qcolor = quantize_color(image.color)
-        self._img_list.setdefault(qcolor, list()).append(image)
+            qcolor = quantize_color(color)
+            self._img_list.setdefault(qcolor, list()).append((color,
+                                                              img.filename))
 
     def search(self, color):
         """Search the most similar image in terms of average color."""
@@ -349,47 +302,22 @@ class ImageList(object):
         qcolor = quantize_color(color)
         best_img_list = None
         best_dist = None
-        for (img_list_color, img_list) in self._img_list.iteritems():
-            dist = squaredistance(qcolor, img_list_color)
+        for (current_color, img_list) in self._img_list.iteritems():
+            dist = squaredistance(qcolor, current_color)
             if best_dist is None or dist < best_dist:
                 best_dist = dist
                 best_img_list = img_list
         # now spot which of the images in the list is equal to the
         # target one.
-        best_img = None
+        best_filename = None
         best_dist = None
-        for img_wrapper in best_img_list:
-            dist = squaredistance(color, img_wrapper.color)
+        for (current_color, filename) in best_img_list:
+            dist = squaredistance(color, current_color)
             if best_dist is None or dist < best_dist:
                 best_dist = dist
-                best_img = img_wrapper
+                best_filename = filename
         # finally return the best match.
-        return best_img
-
-
-def resizefunc(img, **kwargs):
-    """Adjust the size of the given image.
-
-    First, the ratio of the image is modified in order to match an
-    eventually specified one. Then the size of the image is modified
-    accordingly.
-
-    """
-    ratio = kwargs.pop('ratio', None)
-    size = kwargs.pop('size', None)
-
-    if ratio is not None:
-        img.reratio(ratio)
-
-    if size is not None:
-        img.resize(size)
-
-    return img
-
-
-def voidfunc(img, **_):
-    """Do nothing special from returning the image as is."""
-    return img
+        return best_filename
 
 
 def splitter(n, iterable):
@@ -454,14 +382,14 @@ def lattice(width, height, rectangles_per_size):
                    x_offset + tile_width, y_offset + tile_height)
 
 
-def extract_tile(filename, rectangles):
+def _extract_average_colors(filename, rectangles):
     """Extract from `img` multiple tiles covering areas described by
     `rectangles`"""
     img = ImageWrapper(filename=filename)
-    return [(rect, average_color(img.crop(rect))) for rect in rectangles]
+    return [average_color(img.crop(rect)) for rect in rectangles]
 
 
-def tilefy(img, tiles_per_size, pool, workers):
+def extract_average_colors(img, rectangles, pool, workers):
     """Convert input image into a matrix of tiles_per_size.
 
     Return a matrix composed by tile-objects, i.e. dictionaries,
@@ -473,11 +401,17 @@ def tilefy(img, tiles_per_size, pool, workers):
     fields either.
 
     """
-    (width, height) = img.size
-    return flatten(
-        pool.map(partial(extract_tile, img.filename),
-                 splitter(workers,
-                          list(lattice(width, height, tiles_per_size)))))
+    return flatten(pool.map(partial(_extract_average_colors, img.filename),
+                            splitter(workers, rectangles)))
+
+def _search_matching_images(image_list, avg_colors):
+    """Gets the name of tiles that best match the given list of colors."""
+    return [image_list.search(color) for color in avg_colors]
+
+
+def search_matching_images(image_list, avg_colors, pool, workers):
+    return flatten(pool.map(partial(_search_matching_images, image_list),
+                            splitter(workers, avg_colors)))
 
 
 def mosaicify(target, sources, tiles=32, zoom=1):
@@ -517,29 +451,42 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     # Load the target image into memory
     mosaic = ImageWrapper(filename=target)
 
-    # Compute the size of the tiles after the zoom factor has been applied
+    # Generate the list of rectangles identifying mosaic tiles
     (original_width, original_height) = mosaic.size
+    rectangles = list(lattice(original_width, original_height, tiles))
+
+    # Compute the size of the tiles after the zoom factor has been applied
     (zoomed_tile_width, zoomed_tile_height) = (zoom * original_width // tiles,
                                                zoom * original_height // tiles)
-    zoomed_tile_size = (zoomed_tile_width, zoomed_tile_height)
+
+    # Load all the sources in memory and indicize them by filename
+    sources = {filename: ImageWrapper(filename=filename)
+               for filename in sources}
+    for img in sources.values():
+        img.reratio(mosaic.ratio)
+        img.resize((zoomed_tile_width, zoomed_tile_height))
 
     # Indicize all the source images by their average color
-    source_list = ImageList(sources, prefunc=resizefunc, postfunc=voidfunc,
-                            ratio=mosaic.ratio, size=zoomed_tile_size)
+    source_list = ImageList(sources.values())
 
-    # Split the original image into its composing tiles.  It's key to do this
-    # operation here -- before zooming the original image -- in order to reduce
-    # the amount of operations to do.
-    original_tiles = tilefy(mosaic, tiles, pool, workers)
+    # Compute the average color of each mosaic tile
+    avg_colors = list(extract_average_colors(mosaic, rectangles, pool,
+                                             workers))
 
     # Apply the zoom factor
-    mosaic.resize((tiles * zoomed_tile_width, tiles * zoomed_tile_height))
+    (zoomed_width, zoomed_height) = (tiles * zoomed_tile_width,
+                                     tiles * zoomed_tile_height)
+    mosaic.resize((zoomed_width, zoomed_height))
+    rectangles = list(lattice(zoomed_width, zoomed_height, tiles))
 
-    # Iterate original tiles, look for the best matching alternative --
-    # in terms of color distance -- and finally paste it into our mosaic
-    for (rect, avg_color) in original_tiles:
-        closest = source_list.search(avg_color)
-        mosaic.paste(closest.image, rect)
+    # Find which source image best fits each mosaic tile
+    best_matching_imgs = search_matching_images(source_list, avg_colors, pool,
+                                                workers)
+
+    # Paste tiles onto the mosaic
+    for (rect, filename) in itertools.izip(rectangles, best_matching_imgs):
+        img = sources[filename]
+        mosaic.paste(img, rect)
 
     # Shut down the pool of workers
     pool.close()
