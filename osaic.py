@@ -72,7 +72,7 @@ from PIL import Image
 
 
 
-"""Mode of quantization of color components."""
+# Mode of quantization of color components
 QUANTIZATION_MODES = 'bottom middle top'.split()
 
 
