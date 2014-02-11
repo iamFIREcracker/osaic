@@ -548,15 +548,6 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     return mosaic
 
 
-def show(img):
-    """Display the image on screen."""
-    img.blob.show()
-
-def save(img, destination):
-    """Save the image onto the specified file."""
-    img.blob.save(destination)
-
-
 def _build_parser():
     """Return a command-line arguments parser."""
     usage = "Usage: %prog [-t TILES] [-z ZOOM] [-o OUTPUT] IMAGE1 ..."
@@ -573,6 +564,15 @@ def _build_parser():
     parser.add_option_group(config)
 
     return parser
+
+
+def show(img):
+    """Display the image on screen."""
+    img.blob.show()
+
+def save(img, destination):
+    """Save the image onto the specified file."""
+    img.blob.save(destination)
 
 
 def _main():
