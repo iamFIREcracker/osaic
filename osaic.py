@@ -441,6 +441,9 @@ def lattice(width, height, rectangles_per_size):
         - top-left point y offset
         - bottom-right point x offset
         - bottom-right point y offset
+
+    >>> list(lattice(10, 10, 2))
+    [(0, 0, 5, 5), (5, 0, 10, 5), (0, 5, 5, 10), (5, 5, 10, 10)]
     """
     (tile_width, tile_height) = (width // rectangles_per_size,
                                  height // rectangles_per_size)
