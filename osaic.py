@@ -414,6 +414,30 @@ def search_matching_images(image_list, avg_colors, pool, workers):
                             splitter(workers, avg_colors)))
 
 
+class Mosaic(object):
+    def __init__(self, img, size, tiles, sources):
+        self._img = img
+        self._initialized = False
+        self._sources = sources
+        self.size = size
+        self.tiles = tiles
+
+    def _initialize(self):
+        if not self._initialized:
+            for (rect, filename) in self.tiles:
+                img = self._sources[filename]
+                self._img.paste(img, rect)
+            self._initialized = True
+
+    def show(self):
+        self._initialize()
+        self._img.blob.show()
+
+    def save(self, destination):
+        self._initialize()
+        self._img.blob.save(destination)
+
+
 def mosaicify(target, sources, tiles=32, zoom=1):
     """Create mosaic of photos.
 
