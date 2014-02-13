@@ -77,6 +77,45 @@ QUANTIZATION_MODES = 'bottom middle top'.split()
 
 
 
+def splitter(n, iterable):
+    """Split `iterable` into `n` separate buckets.
+    
+    >>> list(splitter(3, range(3)))
+    [[0], [1], [2]]
+    >>> list(splitter(3, range(4)))
+    [[0, 1], [2], [3]]
+    >>> list(splitter(3, range(5)))
+    [[0, 1], [2, 3], [4]]
+    >>> list(splitter(3, range(6)))
+    [[0, 1], [2, 3], [4, 5]]
+    >>> list(splitter(3, range(7)))
+    [[0, 1, 2], [3, 4], [5, 6]]
+    """
+    items_per_bucket = len(iterable) / n
+    cutoff = 1
+    acc = []
+    for (i, elem) in enumerate(iterable):
+        if i < cutoff * items_per_bucket:
+            acc += [elem]
+        else:
+            yield acc
+            cutoff += 1
+            acc = [elem]
+    if acc:
+        yield acc
+
+
+def flatten(iterable):
+    """Flatten the input iterable.
+    
+    >>> list(flatten([[0, 1], [2, 3]]))
+    [0, 1, 2, 3]
+    >>> list(flatten([[0, 1], [2, 3, 4, 5]]))
+    [0, 1, 2, 3, 4, 5]
+    """
+    return itertools.chain.from_iterable(iterable)
+
+
 def dotproduct(vec1, vec2):
     """Return dot product of given vectors.
     
@@ -334,45 +373,6 @@ class ImageList(object):
                 best_filename = filename
         # finally return the best match.
         return best_filename
-
-
-def splitter(n, iterable):
-    """Split `iterable` into `n` separate buckets.
-    
-    >>> list(splitter(3, range(3)))
-    [[0], [1], [2]]
-    >>> list(splitter(3, range(4)))
-    [[0, 1], [2], [3]]
-    >>> list(splitter(3, range(5)))
-    [[0, 1], [2, 3], [4]]
-    >>> list(splitter(3, range(6)))
-    [[0, 1], [2, 3], [4, 5]]
-    >>> list(splitter(3, range(7)))
-    [[0, 1, 2], [3, 4], [5, 6]]
-    """
-    items_per_bucket = len(iterable) / n
-    cutoff = 1
-    acc = []
-    for (i, elem) in enumerate(iterable):
-        if i < cutoff * items_per_bucket:
-            acc += [elem]
-        else:
-            yield acc
-            cutoff += 1
-            acc = [elem]
-    if acc:
-        yield acc
-
-
-def flatten(iterable):
-    """Flatten the input iterable.
-    
-    >>> list(flatten([[0, 1], [2, 3]]))
-    [0, 1, 2, 3]
-    >>> list(flatten([[0, 1], [2, 3, 4, 5]]))
-    [0, 1, 2, 3, 4, 5]
-    """
-    return itertools.chain.from_iterable(iterable)
 
 
 def lattice(width, height, rectangles_per_size):
