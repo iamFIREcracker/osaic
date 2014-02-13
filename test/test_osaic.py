@@ -45,28 +45,6 @@ def tearDownModule():
 
 
 
-class TestFunctions(unittest.TestCase):
-
-    def test_average(self):
-        # XXX
-        pass
-
-    def test_quantize(self):
-        red = (255, 0, 0)
-        # sanity checks
-        self.assertRaises(ValueError, quantize_color, red, 0)
-        self.assertRaises(ValueError, quantize_color, red, 257)
-        self.assertRaises(ValueError, quantize_color, red, 128, 'asd')
-        # noop
-        self.assertEquals(red, quantize_color(red, 256))
-        # misc quantization
-        self.assertEquals((192, 0, 0), quantize_color(red, 4, 'bottom'))
-        self.assertEquals((224, 32, 32), quantize_color(red, 4, 'middle'))
-        self.assertEquals((255, 63, 63), quantize_color(red, 4, 'top'))
-        self.assertEquals((192, 64, 64), quantize_color((240, 10, 20), 2, 'middle'))
-
-
-
 class TestImageWrapper(unittest.TestCase):
 
     def test_init(self):
@@ -143,15 +121,6 @@ class TestImageWrapper(unittest.TestCase):
         # paste it again on the right.
         img1.paste(img, (new_width, 0, width, height))
         self.assertEquals(color, average_color(img1))
-
-    def test_show_and_save(self):
-        img = ImageWrapper(filename=IMGCOLORS[0])
-        # it is not easy to test such a feature: for the moment just for
-        # the method presence. XXX
-        self.assertEquals(True, hasattr(img, 'show'))
-        # same as before, but for the ``save`` method. Too lazy for
-        # these ;-) XXX
-        self.assertEquals(True, hasattr(img, 'save'))
 
 
 

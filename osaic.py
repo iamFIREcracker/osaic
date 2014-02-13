@@ -197,7 +197,34 @@ def quantize_color(color, levels=8, mode='middle'):
     the first range of each component; hence, depending on the chosen
     mode, it will return (0, 0, 0), (64, 64, 64) or (127, 127, 127).
 
+    >>> red = (255, 0, 0)
 
+    >>> quantize_color(red, 0)
+    Traceback (most recent call last):
+        ...
+    ValueError: Number of levels should be in range ]0, 256].
+
+    >>> quantize_color(red, 257)
+    Traceback (most recent call last):
+        ...
+    ValueError: Number of levels should be in range ]0, 256].
+
+    >>> quantize_color(red, 128, 'asd')
+    Traceback (most recent call last):
+        ...
+    ValueError: Mode should be one of bottom middle top.
+
+    >>> quantize_color(red, 256)
+    (255, 0, 0)
+
+    >>> quantize_color(red, 4, 'bottom')
+    (192, 0, 0)
+    >>> quantize_color(red, 4, 'middle')
+    (224, 32, 32)
+    >>> quantize_color(red, 4, 'top')
+    (255, 63, 63)
+    >>> quantize_color((240, 10, 20), 2, 'middle')
+    (192, 64, 64)
     """
     if levels <= 0 or levels > 256:
         raise ValueError("Number of levels should be in range ]0, 256].")
