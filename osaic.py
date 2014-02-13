@@ -63,6 +63,7 @@ from __future__ import division
 import itertools
 import multiprocessing
 import operator
+from collections import namedtuple
 from optparse import OptionParser
 from optparse import OptionGroup
 from functools import partial
@@ -188,6 +189,8 @@ def quantize_color(color, levels=8, mode='middle'):
     return tuple(ret)
 
 
+SerializableImage = namedtuple('SerializableImage',
+                               'filename size mode data'.split())
 
 class ImageWrapper(object):
     """Wrapper around the ``Image`` object from the PIL library.
@@ -273,6 +276,19 @@ class ImageWrapper(object):
     def paste(self, image, rect):
         """Paste given image over the current one."""
         self.blob.paste(image.blob, rect)
+
+    def serialize(self):
+        """Convert the image wrapper into a `SerializableImage`."""
+        return SerializableImage(self.filename, self.size, self.blob.mode,
+                                 self.blob.tobytes())
+
+    @staticmethod
+    def deserialize(raw):
+        """Create a new image wrapper from the given `SerializableImage`."""
+        return ImageWrapper(filename=raw.filename,
+                            blob=Image.frombytes(raw.mode,
+                                                 raw.size,
+                                                 raw.data))
 
 
 class ImageList(object):
@@ -382,6 +398,21 @@ def lattice(width, height, rectangles_per_size):
                    x_offset + tile_width, y_offset + tile_height)
 
 
+def _load_raw_tiles(filenames, ratio, size):
+    def func(filename):
+        img = ImageWrapper(filename=filename)
+        img.reratio(ratio)
+        img.resize(size)
+        return img.serialize()
+    return [func(filename) for filename in filenames]
+
+
+def load_raw_tiles(filenames, ratio, size, pool, workers):
+    raws = flatten(pool.map(partial(_load_raw_tiles, ratio=ratio, size=size),
+                            splitter(workers, filenames)))
+    return [ImageWrapper.deserialize(raw) for raw in raws]
+
+
 def _extract_average_colors(filename, rectangles):
     """Extract from `img` multiple tiles covering areas described by
     `rectangles`"""
@@ -415,27 +446,24 @@ def search_matching_images(image_list, avg_colors, pool, workers):
 
 
 class Mosaic(object):
-    def __init__(self, img, size, tiles, sources):
-        self._img = img
+    def __init__(self, mosaic, tiles):
+        self._mosaic = mosaic
+        self._tiles = tiles
         self._initialized = False
-        self._sources = sources
-        self.size = size
-        self.tiles = tiles
 
     def _initialize(self):
         if not self._initialized:
-            for (rect, filename) in self.tiles:
-                img = self._sources[filename]
-                self._img.paste(img, rect)
+            for (rect, img) in self._tiles:
+                self._mosaic.paste(img, rect)
             self._initialized = True
 
     def show(self):
         self._initialize()
-        self._img.blob.show()
+        self._mosaic.blob.show()
 
     def save(self, destination):
         self._initialize()
-        self._img.blob.save(destination)
+        self._mosaic.blob.save(destination)
 
 
 def mosaicify(target, sources, tiles=32, zoom=1):
@@ -468,10 +496,6 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     When done, show the result on screen or dump it on the disk.
 
     """
-    # Initialize the pool of workers
-    workers = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(workers)
-
     # Load the target image into memory
     mosaic = ImageWrapper(filename=target)
 
@@ -483,19 +507,34 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     (zoomed_tile_width, zoomed_tile_height) = (zoom * original_width // tiles,
                                                zoom * original_height // tiles)
 
-    # Load all the sources in memory and indicize them by filename
-    sources = {filename: ImageWrapper(filename=filename)
-               for filename in sources}
-    for img in sources.values():
-        img.reratio(mosaic.ratio)
-        img.resize((zoomed_tile_width, zoomed_tile_height))
+    # Initialize the pool of workers
+    workers = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(workers)
+
+    # Load tiles into memory and resize them accordingly
+    source_tiles = dict(itertools.izip(sources,
+                                       load_raw_tiles(sources,
+                                                  mosaic.ratio,
+                                                  (zoomed_tile_width,
+                                                   zoomed_tile_height),
+                                                  pool,
+                                                  workers)))
 
     # Indicize all the source images by their average color
-    source_list = ImageList(sources.values())
+    source_list = ImageList(source_tiles.values())
 
     # Compute the average color of each mosaic tile
-    avg_colors = list(extract_average_colors(mosaic, rectangles, pool,
-                                             workers))
+    mosaic_avg_colors = list(extract_average_colors(mosaic, rectangles, pool,
+                                                    workers))
+
+    # Find which source image best fits each mosaic tile
+    best_matching_imgs = list(search_matching_images(source_list,
+                                                     mosaic_avg_colors,
+                                                     pool, workers))
+
+    # Shut down the pool of workers
+    pool.close()
+    pool.join()
 
     # Apply the zoom factor
     (zoomed_width, zoomed_height) = (tiles * zoomed_tile_width,
@@ -503,17 +542,9 @@ def mosaicify(target, sources, tiles=32, zoom=1):
     mosaic.resize((zoomed_width, zoomed_height))
     rectangles = list(lattice(zoomed_width, zoomed_height, tiles))
 
-    # Find which source image best fits each mosaic tile
-    best_matching_imgs = list(search_matching_images(source_list, avg_colors,
-                                                     pool, workers))
-
-    # Shut down the pool of workers
-    pool.close()
-    pool.join()
-
-    return Mosaic(mosaic, (zoomed_width, zoomed_height),
-                  list(itertools.izip(rectangles, best_matching_imgs)),
-                  sources)
+    return Mosaic(mosaic, itertools.izip(rectangles,
+                                         itertools.imap(source_tiles.get,
+                                                        best_matching_imgs)))
 
 
 def _build_parser():
